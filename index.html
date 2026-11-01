@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Yashika Systems Billing Software</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+\n<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -1839,5 +1842,171 @@ function remindPendingCredit(index){
 }
 </style>
 
-</body>
+
+<style>
+#cloudLogin{position:fixed;inset:0;z-index:200000;background:rgba(0,5,15,.96);display:flex;align-items:center;justify-content:center;padding:18px}
+#cloudLogin .cloud-card{width:min(430px,100%);background:linear-gradient(145deg,#082849,#071126);border:2px solid #078bd2;border-radius:16px;padding:26px;box-shadow:0 0 35px #007bca55}
+#cloudLogin h2{margin:0 0 8px;color:#00d9ff;text-align:center}
+#cloudLogin p{color:#b9d7ef;text-align:center;font-size:13px;line-height:1.5}
+#cloudLogin input{margin:8px 0}
+#cloudLogin button{width:100%;padding:12px;border-radius:8px;border:1px solid #00cfff;background:linear-gradient(90deg,#0968b5,#087fcb);color:white;font-weight:bold;cursor:pointer;margin-top:10px}
+#cloudLogin .cloud-error{color:#ff9eaa;min-height:20px;font-size:12px;text-align:center}
+#cloudStatus{position:fixed;bottom:10px;right:12px;z-index:150000;background:#071d36;border:1px solid #168bd0;color:#bceaff;border-radius:20px;padding:7px 12px;font-size:11px;box-shadow:0 2px 12px #0008}
+</style>
+<div id="cloudLogin">
+ <div class="cloud-card">
+  <h2>☁ YASHIKA SYSTEMS BILLING</h2>
+  <p>Sign in to access your bills and synchronize data across computers.</p>
+  <input id="cloudEmail" type="email" autocomplete="username" placeholder="Email address">
+  <input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Password">
+  <button id="cloudSignIn">SIGN IN & CONNECT</button>
+  <div id="cloudError" class="cloud-error"></div>
+  <p style="font-size:11px">Use the Firebase Email/Password account already created for this billing project.</p>
+ </div>
+</div>
+<div id="cloudStatus">☁ Cloud: Sign in required</div>
+<script>
+(function(){
+'use strict';
+const firebaseConfig = {
+  apiKey: "AIzaSyABXX-AI20uAfhGSxhIJ96oLve8-fafJW4",
+  authDomain: "yashika-systems-billing.firebaseapp.com",
+  projectId: "yashika-systems-billing",
+  storageBucket: "yashika-systems-billing.firebasestorage.app",
+  messagingSenderId: "115371176637",
+  appId: "1:115371176637:web:617861f92dcc2cf3acbdd4"
+};
+const EXPECTED_UID = "RoDHdHUohzOPmILom8BdAvHwUDw2";
+let auth, db, currentUser=null, applyingCloud=false, cloudReady=false, pushTimer=null;
+let billsUnsub=null, settingsUnsub=null, firstBillsSnapshot=true;
+const statusEl=()=>document.getElementById('cloudStatus');
+function setStatus(s){if(statusEl())statusEl().textContent='☁ '+s;}
+function showError(s){document.getElementById('cloudError').textContent=s||'';}
+function safeId(){return (crypto.randomUUID?crypto.randomUUID():('id-'+Date.now()+'-'+Math.random().toString(16).slice(2)));}
+function readLocal(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback));}catch(e){return fallback;}}
+function writeLocal(key,value){applyingCloud=true;localStorage.setItem(key,JSON.stringify(value));applyingCloud=false;}
+function refreshViews(){
+ try{
+  updateShopNameUI();drawServices();summary();drawHistory();updateCreditDashboard();updateTopPendingCredit();
+ }catch(e){console.warn('Refresh after cloud sync:',e);}
+}
+function ensureBillIds(){
+ let changed=false;
+ (bills||[]).forEach(b=>{if(!b._cloudId){b._cloudId=safeId();changed=true;}});
+ if(changed){applyingCloud=true;localStorage.setItem('model_bills',JSON.stringify(bills));applyingCloud=false;}
+}
+async function uploadAllLocal(){
+ ensureBillIds();
+ const batchLimit=400;
+ let list=(bills||[]);
+ for(let i=0;i<list.length;i+=batchLimit){
+  const batch=db.batch();
+  list.slice(i,i+batchLimit).forEach(b=>{
+   const id=b._cloudId||safeId(); b._cloudId=id;
+   batch.set(db.collection('bills').doc(id),b,{merge:true});
+  });
+  await batch.commit();
+ }
+ const settings={
+  services:services||[], drafts:drafts||[], shopName:shopName||'',
+  waWelcome:waWelcome||'', waQuote:waQuote||'', upiIdSetting:upiIdSetting||'',
+  updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+ };
+ await db.collection('appSettings').doc('main').set(settings,{merge:true});
+}
+function schedulePush(){
+ if(!cloudReady||applyingCloud||!currentUser)return;
+ clearTimeout(pushTimer);
+ pushTimer=setTimeout(async()=>{
+  try{await uploadAllLocal();setStatus('Synced ✓');}
+  catch(e){console.error(e);setStatus('Sync error – check connection');}
+ },700);
+}
+function attachCloudListeners(){
+ if(billsUnsub)billsUnsub(); if(settingsUnsub)settingsUnsub();
+ setStatus('Connecting…');
+ billsUnsub=db.collection('bills').onSnapshot(async snap=>{
+  if(!cloudReady)return;
+  const cloudBills=snap.docs.map(d=>({...d.data(),_cloudId:d.id}));
+  if(snap.metadata.fromCache && !snap.metadata.hasPendingWrites && cloudBills.length===0)return;
+  // On the first snapshot, merge local and cloud bills to avoid losing either side.
+  if(firstBillsSnapshot){
+   firstBillsSnapshot=false;
+   const merged=new Map();
+   (bills||[]).forEach(b=>{if(!b._cloudId)b._cloudId=safeId();merged.set(b._cloudId,b);});
+   cloudBills.forEach(b=>merged.set(b._cloudId,b));
+   const combined=[...merged.values()];
+   applyingCloud=true;bills=combined;localStorage.setItem('model_bills',JSON.stringify(bills));applyingCloud=false;
+   refreshViews();
+   if(combined.length) schedulePush();
+  }else if(snap.empty){
+   if((bills||[]).length){schedulePush();return;}
+   applyingCloud=true;bills=[];localStorage.setItem('model_bills','[]');applyingCloud=false;
+  }else{
+   applyingCloud=true;bills=cloudBills;localStorage.setItem('model_bills',JSON.stringify(bills));applyingCloud=false;
+   refreshViews();
+  }
+  setStatus('Live sync active ✓');
+ },e=>{console.error(e);setStatus('Bills sync error');});
+ settingsUnsub=db.collection('appSettings').doc('main').onSnapshot(async doc=>{
+  if(!cloudReady)return;
+  if(!doc.exists){
+   schedulePush();return;
+  }
+  const d=doc.data()||{};
+  applyingCloud=true;
+  if(Array.isArray(d.services)){services=d.services;localStorage.setItem('model_services',JSON.stringify(services));}
+  if(Array.isArray(d.drafts)){drafts=d.drafts;localStorage.setItem('model_drafts',JSON.stringify(drafts));}
+  if(typeof d.shopName==='string'&&d.shopName){shopName=d.shopName;localStorage.setItem('model_shopName',shopName);}
+  if(typeof d.waWelcome==='string'){waWelcome=d.waWelcome;localStorage.setItem('model_waWelcome',waWelcome);}
+  if(typeof d.waQuote==='string'){waQuote=d.waQuote;localStorage.setItem('model_waQuote',waQuote);}
+  if(typeof d.upiIdSetting==='string'){upiIdSetting=d.upiIdSetting;localStorage.setItem('model_upiId',upiIdSetting);}
+  applyingCloud=false;refreshViews();setStatus('Live sync active ✓');
+ },e=>{console.error(e);setStatus('Settings sync error');});
+}
+async function connectUser(user){
+ if(user.uid!==EXPECTED_UID){
+  await auth.signOut();
+  document.getElementById('cloudLogin').style.display='flex';
+  showError('This account is not authorized for this billing system.');
+  setStatus('Unauthorized account');return;
+ }
+ currentUser=user;
+ document.getElementById('cloudLogin').style.display='none';
+ setStatus('Loading cloud data…');
+ // Assign stable IDs to older local bills before initial cloud upload.
+ ensureBillIds();
+ cloudReady=true;
+ attachCloudListeners();
+}
+document.getElementById('cloudSignIn').addEventListener('click',async()=>{
+ const email=document.getElementById('cloudEmail').value.trim();
+ const password=document.getElementById('cloudPassword').value;
+ if(!email||!password){showError('Enter your email address and password.');return;}
+ showError('Signing in…');
+ try{await auth.signInWithEmailAndPassword(email,password);showError('');}
+ catch(e){console.error(e);showError(e.code==='auth/invalid-credential'?'Incorrect email or password.':(e.message||'Sign-in failed.'));}
+});
+document.getElementById('cloudPassword').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('cloudSignIn').click();});
+try{
+ firebase.initializeApp(firebaseConfig);
+ auth=firebase.auth(); db=firebase.firestore();
+ auth.onAuthStateChanged(user=>{
+  if(user)connectUser(user);
+  else{currentUser=null;cloudReady=false;if(billsUnsub)billsUnsub();if(settingsUnsub)settingsUnsub();document.getElementById('cloudLogin').style.display='flex';setStatus('Sign in required');}
+ });
+}catch(e){console.error(e);showError('Firebase could not initialize. Check internet connection and Firebase configuration.');setStatus('Firebase setup error');}
+
+// Intercept existing localStorage writes so all existing billing actions sync without changing UI logic.
+const originalSetItem=Storage.prototype.setItem;
+Storage.prototype.setItem=function(key,value){
+ const result=originalSetItem.call(this,key,value);
+ if(this===localStorage && ['model_bills','model_services','model_drafts','model_shopName','model_waWelcome','model_waQuote','model_upiId'].includes(key))schedulePush();
+ return result;
+};
+window.addEventListener('online',()=>{if(currentUser)schedulePush();});
+window.addEventListener('beforeunload',()=>{clearTimeout(pushTimer);});
+})();
+</script>
+\n</body>
 </html>
