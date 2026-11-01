@@ -1,0 +1,1843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yashika Systems Billing Software</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+.pay.credit{border-color:#d79b32;background:linear-gradient(145deg,#3a2708,#171006);color:#ffd36a}
+.pay.credit.active{box-shadow:0 0 18px rgba(255,190,60,.35);border-color:#ffd36a}
+.creditrow{margin-top:8px;display:flex;align-items:center};
+.pending-stat{border-color:#b97820!important;color:#ffd36a}.pending-stat b{color:#ffd36a}
+
+.bottom-credit-amount{margin-top:10px;padding:9px 12px;border:1px solid #b91c1c;border-radius:8px;background:rgba(127,29,29,.55);color:#fecaca;font-size:15px;font-weight:800;text-align:right}
+
+.creditamount{margin-top:6px;padding:10px 14px;border:1px solid #b97820;border-radius:8px;color:#ffd36a;font-size:20px;font-weight:800;background:#171006}
+
+*{box-sizing:border-box}body{margin:0;background:#020b18;color:#eaf6ff;font-family:Arial,Segoe UI,sans-serif}.app{min-height:100vh;background:radial-gradient(circle at 50% 0,#082e56 0,#020b18 38%,#010713 100%)}
+
+/* Main Header */
+header{padding:10px 24px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,#031126,#06274a,#031126);gap:15px;flex-wrap:nowrap}
+device-brand{display:flex;gap:12px;align-items:center;white-space:nowrap}
+.brand{display:flex;gap:12px;align-items:center;white-space:nowrap}
+.logo{font-size:28px;line-height:1}
+.brand-text{display:flex;align-items:center}
+.brand h1{font-size:22px;margin:0;line-height:1}
+.brand h1 span{color:#00d9ff}
+
+.top{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.clock,.top button{background:#071d36;border:1px solid #1d689d;color:white;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:center;gap:5px}
+.top button{font-weight:bold;font-size:12px;cursor:pointer;white-space:nowrap}
+#topPendingCreditBtn{color:#ffd36a;border-color:#b97820;position:relative}
+.pending-action{border:1px solid #17669f;border-radius:6px;padding:6px 9px;margin:2px;font-size:11px;font-weight:800;cursor:pointer}
+.pending-action.collect{background:#06351d;color:#70ff8a;border-color:#176b3b}
+.pending-action.remind{background:#061d3b;color:#69b7ff;border-color:#17669f}
+.pending-action:hover{filter:brightness(1.2)}
+.pending-notify{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;min-width:18px;margin-left:5px;border-radius:50%;background:#ff1744;color:#fff;font-size:10px;font-weight:900;line-height:18px;vertical-align:middle;box-shadow:0 0 8px rgba(255,23,68,.45)}
+#topPendingCreditBtn.has-pending{animation:pendingPulse 1.2s infinite}
+@keyframes pendingPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,49,92,.25)}50%{box-shadow:0 0 0 6px rgba(255,49,92,0)}}
+
+.main{display:grid;grid-template-columns:29% 41% 30%;gap:14px;padding:14px}.panel{background:linear-gradient(145deg,#071c33,#041426);border:1px solid #235b83;border-radius:15px;overflow:hidden}.title{font-size:19px;font-weight:bold;padding:15px;border-bottom:1px solid #17486d}.title:before{content:"◉";color:#00aaff;margin-right:10px}.body{padding:14px}input{background:#07182b;border:1px solid #285878;color:white;border-radius:8px;padding:12px;width:100%}
+
+/* Updated compact side-by-side (2 columns) single-line service list layout */
+.services{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;max-height:280px;overflow-y:auto;padding-right:4px}
+.service{background:linear-gradient(145deg,#0a2b4b,#071a31);border:1px solid #1487d1;border-radius:6px;padding:8px 10px;color:white;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:12px;cursor:pointer;text-align:left;width:100%}
+.service span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:6px}
+.service small{display:inline-block;margin-top:0;font-size:12px;color:#d8efff;white-space:nowrap}
+
+.add{margin-top:15px;width:100%;padding:12px;background:#074d78;border:1px solid #00aaff;color:#00d9ff;border-radius:7px;font-weight:bold}.billhead{display:grid;grid-template-columns:1fr 210px;gap:15px}.billno{border:1px dashed #49677e;border-radius:8px;padding:12px}.billtable{width:100%;border-collapse:collapse;margin-top:15px}.billtable th,.billtable td{padding:12px;border-bottom:1px solid #23445e;text-align:left}.qty{width:55px;padding:7px}.trash{color:#ff3f4f;cursor:pointer}.billbottom{display:flex;justify-content:space-between;align-items:center;padding:14px}.clear{background:#861d2b;color:white;border:1px solid #d33b4d;padding:11px 20px;border-radius:7px}.draft{background:#083a79;color:white;border:1px solid #1769bb;padding:11px 20px;border-radius:7px}.amount{font-size:27px;color:#64ff36;font-weight:bold}.payment{display:grid;grid-template-columns:185px 1fr;gap:18px;border-top:1px solid #23445e;padding:16px;background:linear-gradient(145deg,rgba(5,20,42,0.6),rgba(4,16,30,0.6));border-radius:12px;margin:10px 0}.paybtns{display:flex;gap:8px;flex-wrap:nowrap;gap:8px;align-items:stretch;flex-wrap:wrap}.paybtns .pay{flex:1;min-width:0;width:auto}.pay{width:90px;height:120px;border-radius:8px;color:white;font-weight:bold;font-size:15px;cursor:pointer;transition:.2s;opacity:.55}.pay.active{opacity:1;transform:scale(1.04);box-shadow:0 0 22px currentColor;border-width:3px}.cash{background:linear-gradient(145deg,#072441,#07162f);border:1px solid #17669f}.upi{background:linear-gradient(145deg,#072441,#07162f);border:1px solid #17669f}.quick{display:flex;gap:7px;margin:8px 0;flex-wrap:nowrap;overflow-x:auto}.quick button{background:#072441;border:1px solid #17669f;color:#53e9ff;padding:10px 8px;border-radius:7px;font-weight:bold;white-space:nowrap;flex:1}.cashrow{display:grid;grid-template-columns:1fr 1fr;gap:15px}.change{text-align:center;font-size:25px;color:#67ff35;font-weight:bold}.checkout{padding:14px;background:linear-gradient(#20a83d,#117c2b);border:1px solid #3ce85e;color:white;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{border:1px solid #1766a2;border-radius:10px;padding:19px;background:#082342}.stat b{display:block;font-size:23px;margin-top:10px;color:#62ff5a}.stat:last-child b{color:#ffd631}.history{margin-top:14px}.datebar{display:flex;gap:12px}.refresh,.excel{background:#075487;border:1px solid #178fd8;color:white;border-radius:7px;padding:11px 18px}.histtable{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}.histtable th,.histtable td{padding:9px;border-bottom:1px solid #23445e}.excel{width:100%;margin-top:15px;font-weight:bold}.footer{height:80px;border-top:1px solid #285b80;display:flex;align-items:center;justify-content:space-around;color:#c5dff2}.footer b{color:#24b9ff}.badge{padding:4px 9px;border-radius:5px}.bcash{background:#148a3a}.bupi{background:#7c20d4}@media(max-width:1100px){header{flex-wrap:wrap}.top{flex-wrap:wrap}.main{grid-template-columns:1fr}.services{grid-template-columns:1fr}}
+
+.bill-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;align-items:center;justify-content:center;padding:20px}
+.bill-modal.show{display:flex}.bill-summary-box{width:min(520px,100%);background:linear-gradient(145deg,#082744,#041426);border:2px solid #168bd0;border-radius:16px;box-shadow:0 0 35px rgba(0,168,255,.35);padding:22px}
+.bill-summary-box h2{text-align:center;color:#00d9ff;margin:0 0 16px}.summary-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #214967}.summary-items{max-height:190px;overflow:auto;margin:10px 0}.summary-total{font-size:26px;color:#65ff42;font-weight:bold}.summary-actions{display:flex;gap:10px;margin-top:18px}.summary-actions button{flex:1;padding:12px;border-radius:8px;color:white;font-weight:bold;cursor:pointer}.close-summary{background:#075487;border:1px solid #159ce8}.print-summary{background:#168b38;border:1px solid #43e76b}.whatsapp-btn{background:#25D366;border:1px solid #1eb253;color:#fff!important}
+@media print{
+ body *{visibility:hidden!important}
+ #billSummaryModal,#billSummaryModal *{visibility:visible!important}
+ #billSummaryModal{display:block!important;position:absolute!important;inset:0!important;background:white!important;padding:0!important;color:#000!important}
+ .bill-summary-box{position:absolute!important;left:0!important;top:0!important;width:100%!important;max-width:none!important;background:white!important;color:#000!important;border:0!important;box-shadow:none!important}
+ .bill-summary-box h2,.summary-total{color:#000!important}
+ .summary-line{border-bottom:1px solid #ccc!important}
+ .summary-actions{display:none!important}
+}
+</style>
+<style>
+:root{--navy:#020817;--navy2:#06172f;--blue:#008cff;--cyan:#00d9ff;--pink:#ff3fa4;--purple:#8b5cf6}
+body{background:#020817!important}
+.app{background:radial-gradient(circle at 75% 0,rgba(0,140,255,.16),transparent 34%),radial-gradient(circle at 15% 15%,rgba(139,92,246,.12),transparent 30%),linear-gradient(135deg,#020817,#06172f 55%,#080b25)!important}
+header{background:linear-gradient(90deg,#030b1e,#062b55,#170a32)!important;box-shadow:0 0 28px rgba(0,140,255,.25)!important}
+.brand h1{color:#ffffff!important}
+.clock,.top button{background:linear-gradient(145deg,#071a35,#0c2850)!important;border-color:#167dcc!important}
+.panel{background:linear-gradient(145deg,rgba(5,20,42,.98),rgba(6,15,35,.98))!important;border-color:#185b91!important;box-shadow:0 8px 30px rgba(0,0,0,.38),0 0 15px rgba(0,140,255,.05)!important}
+.title{background:linear-gradient(90deg,rgba(0,140,255,.11),rgba(139,92,246,.08))!important;border-bottom-color:#194b78!important}.title:before{color:#00c8ff!important}
+input,select{background:#06152c!important;border-color:#245b89!important;color:white!important;border-radius:8px;padding:12px;width:100%}
+input:focus,select:focus{border-color:#00bfff!important;box-shadow:0 0 0 2px rgba(0,191,255,.12)!important}
+.service{background:linear-gradient(145deg,#082849,#071a36)!important;border-color:#1479bf!important}.service:hover{border-color:#00d9ff!important;box-shadow:0 0 18px rgba(0,217,255,.22)!important}.service small{color:#62dfff!important}
+.add,.refresh,.excel,.download-btn{background:linear-gradient(90deg,#0968b5,#087fcb)!important;border-color:#00bfff!important;color:#fff!important}
+.billno{border-color:#557596!important}.billno b{color:#00d9ff!important}
+.billtable th,.billtable td,.histtable th,.histtable td{border-bottom-color:#1e405e!important}
+.clear{background:#7f1734!important;border-color:#e93b6d!important}.draft{background:#0b438b!important;border-color:#187fe1!important}
+.amount,.change{color:#58f5ff!important;text-shadow:0 0 10px rgba(0,217,255,.22)}
+.payment{border-top-color:#204b70!important;background:linear-gradient(145deg,#072441,#07162f)!important;border:1px solid #17669f!important}
+.cash{background:linear-gradient(145deg,#072441,#07162f)!important;border:1px solid #17669f!important}.upi{background:linear-gradient(145deg,#072441,#07162f)!important;border:1px solid #17669f!important}
+.pay{opacity:.48!important}.pay.active{opacity:1!important;transform:scale(1.04)!important;box-shadow:0 0 24px rgba(0,217,255,0.4)!important;border-width:2px!important;border-color:#00d9ff!important}
+.quick button{background:linear-gradient(145deg,#072441,#07162f)!important;border-color:#17669f!important;color:#53e9ff!important}
+.checkout{margin:0 16px 16px;width:calc(100% - 32px);padding:14px;background:linear-gradient(90deg,#087cc8,#7250dc,#d52b91)!important;border-color:#00cfff!important;box-shadow:0 0 20px rgba(0,140,255,.2)!important}
+.download-btn{background:linear-gradient(90deg,#168b38,#43e76b)!important;border-color:#3ce85e!important;font-weight:bold;cursor:pointer}
+.stat{background:linear-gradient(145deg,#072441,#07162f)!important;border-color:#17669f!important}.stat b{color:#53e9ff!important}.stat:last-child b{color:#ff62b8!important}
+.footer{background:linear-gradient(90deg,#030c1f,#07264b,#150a30)!important;border-top-color:#17669f!important}.footer b{color:#00d9ff!important}
+.bill-summary-box{background:linear-gradient(145deg,#071d3b,#130b30)!important;border-color:#008cff!important;box-shadow:0 0 35px rgba(0,140,255,.35)!important}.bill-summary-box h2{color:#00d9ff!important}.summary-line{border-bottom-color:#254665!important}.summary-total{color:#ff5bb4!important}
+
+.header-wa-box{display:flex;align-items:center;gap:6px;background:rgba(37,211,102,0.1);border:1px solid #25D366;padding:4px 8px;border-radius:8px}
+.header-wa-box input{width:120px;padding:6px 8px;font-size:12px;border-radius:6px;height:32px}
+.header-wa-box button{padding:6px 10px;font-size:12px;border-radius:6px;font-weight:bold;cursor:pointer;white-space:nowrap;height:32px}
+</style>
+<style>
+.settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10000;align-items:center;justify-content:center;padding:20px}.settings-modal.show{display:flex}.settings-box{width:min(850px,100%);max-height:88vh;overflow:auto;background:#071d3b;border:2px solid #008cff;border-radius:16px;padding:20px}.service-edit-row{display:grid;grid-template-columns:1fr 150px 90px;gap:10px;padding:8px 0}.service-edit-row input{margin:0}.service-edit-row button,.settings-box button{padding:10px;border-radius:7px;border:1px solid #00cfff;background:#087cc8;color:white;cursor:pointer}
+</style><style>
+.bills-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:11000;align-items:center;justify-content:center;padding:18px}
+.bills-modal.show{display:flex}.bills-box{width:min(1100px,100%);max-height:90vh;overflow:auto;background:#071d3b;border:2px solid #008cff;border-radius:16px;padding:20px}
+.bills-top{display:flex;justify-content:space-between;align-items:center}.bills-top button,.bill-detail-btn{padding:9px 13px;border-radius:7px;border:1px solid #00cfff;background:#087cc8;color:#fff;cursor:pointer}
+.all-bills-table{width:100%;border-collapse:collapse;margin-top:15px}.all-bills-table th,.all-bills-table td{padding:10px;border-bottom:1px solid #254665;text-align:left}
+.bill-detail-card{margin-top:15px;border:1px solid #286392;border-radius:10px;padding:15px;background:#06152c}.bill-detail-card h3{color:#00d9ff}.detail-item{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #254665}
+</style><style>
+.backup-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:13000;align-items:center;justify-content:center;padding:20px}
+.backup-modal.show{display:flex}.backup-box{width:min(480px,100%);background:linear-gradient(145deg,#071d3b,#130b30);border:2px solid #008cff;border-radius:16px;padding:24px;text-align:center;box-shadow:0 0 35px rgba(0,140,255,.35)}
+.backup-box h2{color:#00d9ff}.backup-actions{display:grid;gap:12px;margin-top:20px}.backup-actions button{padding:15px;border-radius:99px;color:white;font-size:16px;font-weight:bold;cursor:pointer}
+.backup-download{background:linear-gradient(90deg,#087cc8,#7250dc);border:1px solid #00cfff}.backup-restore{background:linear-gradient(90deg,#9c1760,#d52b91);border:1px solid #ff62b8}.backup-close{background:#283750;border:1px solid #557596}
+</style><style>
+.dashboard-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.84);z-index:12500;align-items:center;justify-content:center;padding:20px}.dashboard-modal.show{display:flex}
+.dashboard-box{width:min(1150px,100%);max-height:90vh;overflow-y:auto;background:linear-gradient(145deg,#071d3b,#130b30);border:2px solid #008cff;border-radius:16px;padding:22px;box-shadow:0 0 35px rgba(0,140,255,.35)}
+.dashboard-head{display:flex;justify-content:space-between;align-items:center}.dashboard-head h2{color:#00d9ff;margin:0;font-size:26px;}.dashboard-head button{padding:10px 16px;border-radius:7px;background:#8b1738;border:1px solid #ff4f7d;color:#fff;cursor:pointer;font-size:14px;font-weight:bold}
+.month-dashboard{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:16px;width:100%}
+.month-stat{padding:8px 6px;border:1px solid #17669f;border-radius:8px;background:linear-gradient(145deg,#072441,#07162f);text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:62px;min-width:0;box-sizing:border-box;overflow:hidden}
+.month-stat span{display:block;color:#a9c9e8;font-size:9px;font-weight:bold;line-height:1.15;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.month-stat b{display:block;margin-top:4px;font-size:15px;color:#53e9ff;width:100%;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.month-stat:last-child b{color:#ff62b8}
+@media(max-width:900px){.month-dashboard{grid-template-columns:repeat(6,minmax(95px,1fr));overflow-x:auto;padding-bottom:4px}.month-stat{min-width:95px}}
+</style>
+
+<!-- POPUP CONFIRMATION MODAL STYLE -->
+<style>
+.confirm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:14000;align-items:center;justify-content:center;padding:20px}
+.confirm-modal.show{display:flex}
+.confirm-box{width:min(420px,100%);background:linear-gradient(145deg,#071d3b,#130b30);border:2px solid #00d9ff;border-radius:16px;padding:24px;text-align:center;box-shadow:0 0 35px rgba(0,217,255,.35)}
+.confirm-box h2{color:#00d9ff;margin-top:0}
+.confirm-actions{display:flex;gap:12px;margin-top:20px}
+.confirm-actions button{flex:1;padding:12px;border-radius:8px;font-weight:bold;font-size:15px;cursor:pointer}
+.confirm-yes{background:linear-gradient(90deg,#168b38,#43e76b);border:1px solid #3ce85e;color:#fff}
+.confirm-no{background:#8b1738;border:1px solid #ff4f7d;color:#fff}
+</style>
+
+<style>
+/* TODAY'S SUMMARY - compact size */
+section.panel:first-child .title{
+  font-size:16px !important;
+  padding:10px 12px !important;
+}
+section.panel:first-child .body.summary{
+  gap:8px !important;
+}
+section.panel:first-child .summary .stat{
+  padding:11px 12px !important;
+  border-radius:7px !important;
+  font-size:13px !important;
+  min-height:0 !important;
+}
+section.panel:first-child .summary .stat b{
+  font-size:18px !important;
+  margin-top:5px !important;
+}
+</style>
+<style>
+.payment-methods{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;align-items:stretch!important}
+.payment-methods .pay{width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}
+@media(max-width:600px){.payment-methods{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important}.payment-methods .pay{font-size:11px!important;padding:8px 3px!important}}
+</style>
+
+<style id="payment-horizontal-fix">
+#paymentMethods,
+.payment-methods,
+.payments,
+.payment-buttons{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  width:100% !important;
+  gap:8px !important;
+  align-items:stretch !important;
+}
+#paymentMethods > button,
+.payment-methods > button,
+.payments > button,
+.payment-buttons > button{
+  flex:1 1 0 !important;
+  width:25% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  white-space:nowrap !important;
+}
+@media(max-width:600px){
+  #paymentMethods,
+  .payment-methods,
+  .payments,
+  .payment-buttons{gap:4px !important;}
+  #paymentMethods > button,
+  .payment-methods > button,
+  .payments > button,
+  .payment-buttons > button{
+    font-size:11px !important;
+    padding:8px 2px !important;
+  }
+}
+</style>
+
+<style id="payment-method-real-fix">
+/* PAYMENT METHOD: four buttons in one true horizontal row */
+.payment{
+  grid-template-columns:minmax(390px, 390px) 1fr !important;
+}
+.paybtns{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  width:100% !important;
+  gap:6px !important;
+  overflow:visible !important;
+}
+.paybtns .pay{
+  flex:1 1 0 !important;
+  width:0 !important;
+  min-width:0 !important;
+  height:120px !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  padding-left:2px !important;
+  padding-right:2px !important;
+}
+@media(max-width:1100px){
+  .payment{grid-template-columns:minmax(390px,390px) 1fr !important;}
+}
+@media(max-width:700px){
+  .payment{grid-template-columns:1fr !important;}
+  .paybtns{gap:4px !important;}
+  .paybtns .pay{
+    height:88px !important;
+    font-size:11px !important;
+    line-height:1.05 !important;
+  }
+}
+</style>
+
+<style id="payment-width-fix">
+.payment .paybtns{
+  width:240px !important;
+  max-width:240px !important;
+}
+.payment .paybtns > .pay{
+  width:240px !important;
+  max-width:240px !important;
+}
+</style>
+<style>
+.payment .paybtns{width:180px!important;max-width:180px!important}
+.payment .paybtns>.pay{width:180px!important;max-width:180px!important}
+</style><style id="payment-2-5cm-width">
+.payment .paybtns{
+  width:2.5cm!important;
+  max-width:2.5cm!important;
+}
+.payment .paybtns>.pay{
+  width:2.5cm!important;
+  max-width:2.5cm!important;
+  min-width:2.5cm!important;
+  font-size:10px!important;
+  padding:3px 2px!important;
+}
+</style>
+<style id="cash-upi-right-fixed">
+.payment{
+  display:grid !important;
+  grid-template-columns:2.5cm minmax(0,1fr) !important;
+  column-gap:14px !important;
+  align-items:start !important;
+}
+.payment > .paybtns{
+  grid-column:1 !important;
+}
+.payment > .payment-content,
+.payment > .pay-content,
+.payment > .details,
+.payment > .payment-box,
+.payment > div:not(.paybtns){
+  grid-column:2 !important;
+  min-width:0 !important;
+}
+</style>
+
+<style id="payment-method-horizontal-final">
+/* PAYMENT METHOD: CASH | UPI | CASH + UPI | CREDIT */
+.payment .paybtns{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  gap:5px !important;
+  width:100% !important;
+  max-width:none !important;
+  align-items:stretch !important;
+}
+.payment .paybtns > .pay{
+  flex:1 1 0 !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:52px !important;
+  min-height:52px !important;
+  margin:0 !important;
+  padding:4px 3px !important;
+  box-sizing:border-box !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+.payment .paybtns > .pay br{display:none !important;}
+.payment .paybtns > #splitPay{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow:hidden !important;
+}
+@media(max-width:600px){
+  .payment .paybtns{gap:3px !important;}
+  .payment .paybtns > .pay{
+    height:46px !important;
+    min-height:46px !important;
+    font-size:9px !important;
+  }
+}
+</style>
+
+<style id="all-payment-single-row">
+/* ALL FOUR PAYMENT BUTTONS - one single horizontal row */
+.payment .paybtns{
+  display:grid !important;
+  grid-template-columns:repeat(4, 1fr) !important;
+  grid-template-rows:52px !important;
+  flex-direction:unset !important;
+  flex-wrap:unset !important;
+  width:100% !important;
+  max-width:none !important;
+  gap:5px !important;
+}
+.payment .paybtns > .pay{
+  grid-row:1 !important;
+  grid-column:auto !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:52px !important;
+  min-height:52px !important;
+  margin:0 !important;
+  padding:4px 2px !important;
+  box-sizing:border-box !important;
+  font-size:10px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+.payment .paybtns > .pay br{display:none !important;}
+</style>
+
+<style id="payment-true-single-row">
+/* TRUE single row: four payment buttons inside the PAYMENT METHOD column */
+.payment > div:first-child{
+  min-width:0 !important;
+}
+.payment > div:first-child .paybtns{
+  display:grid !important;
+  grid-template-columns:repeat(4, 1fr) !important;
+  grid-template-rows:52px !important;
+  gap:3px !important;
+  width:185px !important;
+  max-width:185px !important;
+  flex:none !important;
+  flex-wrap:nowrap !important;
+}
+.payment > div:first-child .paybtns > .pay{
+  display:flex !important;
+  grid-row:1 !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:52px !important;
+  min-height:52px !important;
+  margin:0 !important;
+  padding:3px 1px !important;
+  box-sizing:border-box !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:9px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+}
+.payment > div:first-child .paybtns > .pay br{
+  display:none !important;
+}
+.payment > div:first-child .paybtns > #splitPay{
+  display:flex !important;
+  padding:0 !important;
+}
+.payment > div:first-child .paybtns > #splitPay > div{
+  font-size:8px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+}
+</style>
+
+<style id="payment-3cm-width">
+/* PAYMENT METHOD button group: 3 cm wide */
+.payment > div:first-child .paybtns{
+  width:3cm !important;
+  max-width:3cm !important;
+}
+</style>
+
+<style id="payment-5cm-each">
+/* PAYMENT METHOD: one horizontal row, EACH button 5 cm wide */
+.payment > div:first-child .paybtns{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  width:auto !important;
+  max-width:none !important;
+  gap:6px !important;
+}
+.payment > div:first-child .paybtns > .pay{
+  flex:0 0 5cm !important;
+  width:5cm !important;
+  min-width:5cm !important;
+  max-width:5cm !important;
+  height:52px !important;
+  min-height:52px !important;
+  box-sizing:border-box !important;
+}
+</style>
+
+<style id="payment-2-5cm-each">
+/* PAYMENT METHOD: one horizontal row, EACH button 2.5 cm wide */
+.payment > div:first-child .paybtns{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  width:auto !important;
+  max-width:none !important;
+  gap:5px !important;
+}
+.payment > div:first-child .paybtns > .pay{
+  flex:0 0 2.5cm !important;
+  width:2.5cm !important;
+  min-width:2.5cm !important;
+  max-width:2.5cm !important;
+  height:52px !important;
+  min-height:52px !important;
+  box-sizing:border-box !important;
+  font-size:10px !important;
+  padding:3px 2px !important;
+}
+</style>
+
+<style id="payment-3cm-large-text">
+/* PAYMENT METHOD: one row, each box 3 cm wide, larger text */
+.payment > div:first-child .paybtns{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  width:auto !important;
+  max-width:none !important;
+  gap:5px !important;
+}
+.payment > div:first-child .paybtns > .pay{
+  flex:0 0 3cm !important;
+  width:3cm !important;
+  min-width:3cm !important;
+  max-width:3cm !important;
+  height:58px !important;
+  min-height:58px !important;
+  box-sizing:border-box !important;
+  font-size:14px !important;
+  font-weight:700 !important;
+  padding:5px 3px !important;
+  line-height:1.05 !important;
+}
+.payment > div:first-child .paybtns > .pay br{
+  display:none !important;
+}
+</style>
+
+<style id="payment-box-colors">
+/* PAYMENT METHOD - colored buttons */
+.payment > div:first-child .paybtns > #cashPay{
+  background:#198754 !important;
+  color:#fff !important;
+}
+.payment > div:first-child .paybtns > #upiPay{
+  background:#1565c0 !important;
+  color:#fff !important;
+}
+.payment > div:first-child .paybtns > #splitPay{
+  background:#e91e63 !important;
+  color:#fff !important;
+}
+.payment > div:first-child .paybtns > #creditPay{
+  background:#d97706 !important;
+  color:#fff !important;
+}
+.payment > div:first-child .paybtns > .pay{
+  border:2px solid rgba(255,255,255,.25) !important;
+  box-shadow:0 2px 5px rgba(0,0,0,.18) !important;
+}
+</style>
+
+<style id="cash-upi-pink-fill">
+.payment > div:first-child .paybtns > #splitPay{
+  background:#e91e63 !important;
+  background-color:#e91e63 !important;
+  color:#fff !important;
+  border-color:#e91e63 !important;
+}
+.payment > div:first-child .paybtns > #splitPay *{
+  background:#e91e63 !important;
+  color:#fff !important;
+}
+</style>
+
+<style id="credit-reminder-red">
+/* CREDIT MENU - REMINDER button red */
+.pending-action.remind,
+.pending-credits .pending-action.remind,
+button[onclick*="remindPendingCredit"]{
+  background:#dc2626 !important;
+  background-color:#dc2626 !important;
+  color:#fff !important;
+  border-color:#dc2626 !important;
+}
+</style>
+
+<style id="reminder-match-collect">
+/* REMINDER button: same box and text styling as COLLECT, with red fill */
+.pending-action.remind,
+button[onclick*="remindPendingCredit"]{
+  background:#dc2626 !important;
+  color:#fff !important;
+  border:1px solid #dc2626 !important;
+  border-radius:6px !important;
+  padding:7px 12px !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  min-width:88px !important;
+  height:auto !important;
+  box-sizing:border-box !important;
+}
+</style>
+
+<style id="reminder-same-as-collect">
+.pending-action.remind,
+button[onclick*="remindPendingCredit"]{
+  background:#fca5a5 !important;
+  background-color:#fca5a5 !important;
+  color:#b91c1c !important;
+  border:1px solid #fca5a5 !important;
+  border-radius:6px !important;
+  padding:7px 12px !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  min-width:88px !important;
+  height:auto !important;
+  box-sizing:border-box !important;
+  box-shadow:none !important;
+}
+</style>
+
+<style id="cash-upi-required">
+#customUpiRow label:after{content:" *";color:#ff6b6b}
+#cashPaymentBox .cashrow > div:first-child:before{content:"* ";color:#ff6b6b}
+</style>
+</head>
+<body><div class="app">
+<!-- Primary Header Bar -->
+<header>
+  <div class="brand">
+    <div class="logo">🖥️</div>
+    <div class="brand-text">
+      <h1 id="headerShopName" style="color: #ffffff !important; display: flex; gap: 8px;"></h1>
+    </div>
+  </div>
+  <div class="top">
+    <div class="clock" id="clock"></div>
+    <div class="header-wa-box">
+      <input id="directWaMobile" type="tel" maxlength="10" placeholder="📱 Mobile No." oninput="syncMobileToSettings(this.value)" onkeydown="if(event.key==='Enter'){sendDirectWelcomeQuote();event.preventDefault();}">
+      <button class="whatsapp-btn" onclick="sendDirectWelcomeQuote()">📲 WELCOME</button>
+    </div>
+    <button onclick="openDashboard()">📊 DASHBOARD</button>
+    <button onclick="openBills()">📄 ALL BILLS</button><button id="topPendingCreditBtn" onclick="openPendingCredits()">📝 CREDIT <span id="pendingNotify" class="pending-notify" style="display:none">0</span></button>
+    <button onclick="openDrafts()">📝 DRAFTS</button>
+    <button onclick="openSettings()">⚙️ SETTINGS</button>
+    <button onclick="openBackupModal()">☁️ BACKUP</button>
+  </div>
+</header>
+
+<div class="main">
+<section class="panel"><div class="title">SERVICES / ITEMS</div><div class="body"><input id="search" placeholder="⌕  Search service..." oninput="drawServices()" onkeydown="handleSearchKeyDown(event)"><div class="services" id="services"></div>
+<div style="margin-top:16px;border-top:1px solid #285878;padding-top:12px"><b>OTHER ITEM - MANUAL ENTRY</b>
+<input id="otherName" placeholder="Item / Service Name" onkeydown="if(event.key==='Enter'){$('otherPrice').focus();event.preventDefault();}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="otherPrice" type="number" min="0" placeholder="Price ₹" onkeydown="if(event.key==='Enter'){$('otherQty').focus();event.preventDefault();}"><input id="otherQty" type="number" min="1" value="1" placeholder="Quantity" onkeydown="if(event.key==='Enter'){addOtherItem();event.preventDefault();}"></div>
+<button class="add" onclick="addOtherItem()">＋ ADD OTHER ITEM TO BILL</button></div></div></section>
+<section class="panel"><div class="title">🛒 CURRENT BILL</div><div class="body"><div class="billhead"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<input id="customer" placeholder="♙ Customer Name (optional)" onkeydown="if(event.key==='Enter'){$('mobile').focus();event.preventDefault();}">
+<input id="mobile" type="tel" maxlength="10" placeholder="📱 Mobile No. (optional)" oninput="syncMobileToSettings(this.value)" onkeydown="if(event.key==='Enter'||event.key==='Enter'){focusFirstCartOrCheckout();event.preventDefault();}">
+</div><div class="billno">Bill No : &nbsp; <b id="billNo" style="color:#00d9ff"></b></div></div>
+
+<table class="billtable"><thead><tr><th>#</th><th>Service Name</th><th>Price (₹)</th><th>Qty</th><th>Total (₹)</th><th>Action</th></tr></thead><tbody id="cart"></tbody></table></div><div class="billbottom"><div><button class="clear" onclick="clearBill()">CLEAR BILL</button> <button class="draft" onclick="saveDraft()">SAVE AS DRAFT</button></div><div>TOTAL AMOUNT &nbsp; <span class="amount">₹ <span id="total">0.00</span></span></div></div><div class="payment"><div><b>PAYMENT METHOD</b><div class="paybtns"><button id="cashPay" class="pay cash active" onclick="setPay('Cash')">💵<br><br>CASH</button><button id="upiPay" class="pay upi" onclick="setPay('UPI')">▦<br><br>UPI</button><button id="splitPay" class="pay upi" onclick="setPay('Cash + UPI')" style="padding:0;overflow:hidden;background:none">
+      <div style="height:50%;background:linear-gradient(145deg,#072441,#07162f);display:flex;align-items:center;justify-content:center;border-bottom:1px solid #17669f">💵 CASH</div>
+      <div style="height:50%;background:linear-gradient(145deg,#072441,#07162f);display:flex;align-items:center;justify-content:center">▦ UPI</div>
+    </button><button id="creditPay" class="pay credit" onclick="setPay('Credit')">📝<br><br>CREDIT</button></div></div><div id="cashPaymentBox"><b>CASH PAYMENT</b><div class="quick"><button onclick="confirmCashAction(exact, 'Exact Amount')">EXACT</button><button onclick="confirmCashAction(()=>cash(50), '₹50')">₹50</button><button onclick="confirmCashAction(()=>cash(100), '₹100')">₹100</button><button onclick="confirmCashAction(()=>cash(200), '₹200')">₹200</button><button onclick="confirmCashAction(()=>cash(300), '₹300')">₹300</button><button onclick="confirmCashAction(()=>cash(400), '₹400')">₹400</button><button onclick="confirmCashAction(()=>cash(500), '₹500')">₹500</button><button onclick="confirmCashAction(()=>cash(1000), '₹1000')">₹1000</button></div><div class="cashrow"><div>CASH GIVEN<input id="given" type="number" value="0" oninput="calcChange()" onkeydown="if(event.key==='Enter'){checkout();event.preventDefault();}"></div><div>CHANGE / BALANCE<div class="change">₹ <span id="change">0.00</span></div><div id="autoUpiBalance" style="margin-top:8px;color:#ff62b8;font-weight:bold">UPI Balance: ₹ <span id="upiBalance">0.00</span></div></div></div></div><div id="upiPaymentBox" style="display:none"><b>UPI PAYMENT</b><div id="customUpiRow" style="display:none;margin-top:10px"><label style="display:block;font-weight:bold;margin-bottom:6px">UPI AMOUNT</label><input id="customUpiAmount" type="number" min="0" step="0.01" value="0" placeholder="Enter UPI amount" oninput="calcChange()" style="width:100%;box-sizing:border-box;padding:11px;border-radius:8px;border:1px solid #17669f;background:#07162f;color:#fff;font-size:16px;font-weight:bold"><div style="margin-top:6px;font-size:13px;color:#ff62b8">UPI Amount: ₹ <span id="customUpiDisplay">0.00</span></div></div><div style="margin-top:8px"><button class="whatsapp-btn" style="width:100%;padding:12px;font-size:15px;font-weight:bold;cursor:pointer" onclick="sendUpiPaymentLink()">📲 SEND PAYMENT LINK WHATSAPP</button></div></div><div id="creditPaymentBox" style="display:none"><b>CREDIT / PENDING</b><div class="creditrow"><div>CREDIT / PENDING<div class="creditamount">₹ <span id="creditBalance">0.00</span></div></div></div></div></div><div id="bottomCreditAmount" class="bottom-credit-amount">CREDIT / PENDING: ₹ <span id="bottomCreditValue">0.00</span></div><button class="checkout" onclick="checkout()">▣ &nbsp; CHECKOUT & SAVE BILL</button></section>
+<div><section class="panel"><div class="title">TODAY'S SUMMARY</div><div class="body summary"><div class="stat">📄 TOTAL BILLS<b id="bills">0</b></div><div class="stat pending-stat">📝 CREDIT<b id="pendingSales">₹ 0.00</b></div><div class="stat">💳 CASH<b id="cashSales">₹ 0.00</b></div><div class="stat">📱 UPI<b id="upiSales">₹ 0.00</b></div><div class="stat">🪙 TODAY'S TOTAL<b id="todayTotal">₹ 0.00</b></div></div></section><section class="panel history"><div class="title">📄 TODAY BILLS</div><div class="body"><table class="histtable"><thead><tr><th>Time</th><th>Bill No</th><th>Customer</th><th>Mobile</th><th>Amount</th><th>Mode</th></tr></thead><tbody id="history"></tbody></table><button class="excel" onclick="exportCSV()">▣ &nbsp; DOWNLOAD EXCEL REPORT</button></div></section></div>
+</div><div class="footer"><div><b id="footerShopName">🛡 Yashika</b><br>Your Trusted Computer & Digital Service Partner</div><div>🖥️ &nbsp; COMPUTER<br>SERVICES</div><div>🌐 &nbsp; NET<br>SERVICES</div><div>◉ &nbsp; DIGITAL<br>INDIA</div><div>📄 &nbsp; E-SEVAI<br>SOLUTIONS</div><div>Designed for Net Centres<br>© 2026 All Rights Reserved</div></div>
+</div>
+
+<div id="draftsModal" class="bills-modal" style="z-index:11500">
+ <div class="bills-box">
+  <div class="bills-top"><h2>📝 SAVED DRAFTS</h2><button onclick="closeDrafts()">CLOSE</button></div>
+  <div id="draftsList"></div>
+ </div>
+</div>
+<div id="billDetailModal" class="bills-modal" style="z-index:12000"><div class="bills-box" style="width:min(650px,100%)">
+<div class="bills-top"><h2>📄 BILL DETAILS</h2><button onclick="closeBillDetail()">CLOSE</button></div>
+<div id="billDetailPopup"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:14px">
+<button class="bill-detail-btn" onclick="navigateBill(-1)">← PREV</button>
+<button class="bill-detail-btn whatsapp-btn" onclick="shareBillWhatsApp(currentViewedBill)">📲 WHATSAPP</button>
+<button class="bill-detail-btn download-btn" onclick="downloadViewedBill()">⬇ PDF</button>
+<button class="bill-detail-btn" onclick="navigateBill(1)">NEXT →</button>
+</div>
+</div></div>
+<div id="billsModal" class="bills-modal"><div class="bills-box">
+<div class="bills-top"><h2>📄 ALL BILLS</h2><button onclick="closeBills()">CLOSE</button></div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0">
+<select id="billSearchMonth" onchange="drawAllBills()">
+  <option value="">-- All Months --</option>
+</select>
+<input id="billSearchDate" type="date" oninput="drawAllBills()">
+<input id="billSearchName" placeholder="Search Name" oninput="drawAllBills()">
+<input id="billSearchMobile" placeholder="Search Mobile" oninput="drawAllBills()">
+<input id="billSearchValue" type="number" placeholder="Bill Value ₹" oninput="drawAllBills()">
+</div>
+<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap" onclick="setBillMode('ALL')">ALL</button>
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap" onclick="setBillMode('Cash')">CASH</button>
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap" onclick="setBillMode('Cash + UPI')">CASH + UPI</button>
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap" onclick="setBillMode('UPI')">UPI</button>
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap" onclick="setBillMode('CREDIT')">CREDIT</button>
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap;background:#7f1d1d;color:#fff;border-color:#991b1b" onclick="setBillMode('VOID')">VOID</button>
+<button class="bill-detail-btn" style="flex:0 0 auto;white-space:nowrap" onclick="clearBillSearch()">CLEAR SEARCH</button>
+<button class="excel" style="width:auto;margin-top:0;flex:0 0 auto;white-space:nowrap" onclick="downloadFilteredBillsReport()">▣ DOWNLOAD REPORT</button>
+</div>
+<div id="allBillsList"></div><div id="fullBillDetail"></div>
+</div></div>
+
+<!-- REPEAT CUSTOMERS MODAL -->
+<div id="repeatCustomerModal" class="bills-modal" style="z-index:12800">
+  <div class="bills-box" style="width:min(900px,100%)">
+    <div class="bills-top">
+      <h2>👥 REPEAT CUSTOMERS (BY MOBILE NO)</h2>
+      <button onclick="closeRepeatCustomerModal()">CLOSE</button>
+    </div>
+    <div style="margin:12px 0; color:#a9c9e8; font-size:13px;">
+      List of customers with 2 or more visits/bills, tracked by mobile number. Click <b>VIEW BILLS</b> to check their history.
+    </div>
+    <div id="repeatCustomerList"></div>
+  </div>
+</div>
+
+<!-- CUSTOMER SPECIFIC BILLS MODAL -->
+<div id="customerBillsModal" class="bills-modal" style="z-index:13000">
+  <div class="bills-box" style="width:min(950px,100%)">
+    <div class="bills-top">
+      <div>
+        <h2 id="custModalTitle" style="margin:0; color:#00d9ff;">CUSTOMER BILLS</h2>
+        <span id="custModalSubtitle" style="color:#a9c9e8; font-size:13px;"></span>
+      </div>
+      <button onclick="closeCustomerBillsModal()">BACK TO LIST</button>
+    </div>
+    <div id="customerBillsList" style="margin-top:15px;"></div>
+  </div>
+</div>
+
+<div id="settingsModal" class="settings-modal"><div class="settings-box" style="position:relative"><button onclick="closeSettings()" title="Close" style="position:absolute;top:10px;right:10px;width:38px;height:38px;padding:0;border-radius:50%;background:#8b1738;border:1px solid #ff4f7d;color:white;font-size:22px;font-weight:bold;cursor:pointer">×</button><h2>⚙ SETTINGS</h2>
+
+<div style="padding:12px;border:1px solid #185b91;border-radius:10px;margin-bottom:14px">
+<div style="display:flex;justify-content:space-align;align-items:center;justify-content:space-between;margin-bottom:10px">
+<b style="color:#00d9ff">🏪 SHOP & WHATSAPP CONFIGURATION</b>
+<button onclick="saveAllServices()">SAVE CHANGES</button>
+</div>
+<div style="margin-top:10px">
+<label style="font-size:12px;color:#a9c9e8">Shop Name (Will show on top of all bills)</label>
+<input id="shopNameInput" placeholder="e.g. SRI PALANIMURUGAN E SEVAI">
+</div>
+<div style="margin-top:10px">
+<label style="font-size:12px;color:#a9c9e8">WhatsApp Welcome Message / Header Quote</label>
+<input id="waWelcomeInput" placeholder="e.g. Welcome to our service centre! 🙏">
+</div>
+<div style="margin-top:10px">
+<label style="font-size:12px;color:#a9c9e8">WhatsApp Closing Quote / Footer Message</label>
+<input id="waQuoteInput" placeholder="e.g. Thank you for visiting! 🙏">
+</div>
+<div style="margin-top:10px">
+<label style="font-size:12px;color:#a9c9e8">UPI ID (for Payment Link Generation)</label>
+<input id="upiIdInput" placeholder="e.g. merchant@upi">
+</div>
+</div>
+
+<p>Edit all listed service names and prices.</p>
+<div style="padding:12px;border:1px solid #185b91;border-radius:10px;margin-bottom:14px">
+<b style="color:#00d9ff">＋ ADD NEW SERVICE</b>
+<div style="display:grid;grid-template-columns:1fr 150px 110px;gap:8px;margin-top:10px">
+<input id="settingNewName" placeholder="New Service Name" onkeydown="if(event.key==='Enter'){$('settingNewPrice').focus();event.preventDefault();}">
+<input id="settingNewPrice" type="number" min="0" step="0.01" placeholder="Price ₹" onkeydown="if(event.key==='Enter'){addServiceFromSettings();event.preventDefault();}">
+<button onclick="addServiceFromSettings()">ADD SERVICE</button>
+</div></div>
+<div id="settingsServiceList"></div>
+<button onclick="saveAllServices()">SAVE ALL CHANGES</button> <button onclick="closeSettings()">CLOSE</button></div></div>
+<div id="billSummaryModal" class="bill-modal">
+ <div class="bill-summary-box">
+  <div style="text-align:center; border-bottom:1px dashed #00d9ff; padding-bottom:10px; margin-bottom:12px;">
+    <h1 id="modalShopHeader" style="margin:0; font-size:24px; text-transform:uppercase; display:flex; justify-content:center; gap:8px;"></h1>
+  </div>
+  <h2>✓ BILL SUMMARY</h2>
+  <div id="billSummaryContent"></div>
+  <div class="summary-actions">
+   <button class="close-summary" onclick="closeBillSummary()">CLOSE / NEW</button>
+   <button class="whatsapp-btn" onclick="shareBillWhatsApp(bills.length - 1)">📲 WHATSAPP</button>
+   <button class="print-summary" onclick="window.print()">PRINT BILL</button>
+  </div>
+ </div>
+</div>
+
+<!-- POPUP CONFIRMATION MODAL HTML -->
+<div id="confirmModal" class="confirm-modal">
+  <div class="confirm-box">
+    <h2>Confirm Amount</h2>
+    <p id="confirmModalText" style="color:#a9c9e8; font-size:16px; margin:15px 0;"></p>
+    <div class="confirm-actions">
+      <button class="confirm-yes" id="confirmYesBtn">YES</button>
+      <button class="confirm-no" onclick="closeConfirmModal()">NO</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const defaults=[['XEROX (B&W)',2],['DOUBLE SIDE XEROX',3],['COLOR XEROX',10],['PRINT (B&W)',5],['COLOR PRINT',15],['SCAN',10],['LAMINATION',20],['PASSPORT PHOTO',30],['PHOTO PRINT',10],['AADHAAR PRINT',20],['PAN CARD SERVICE',50],['VOTER ID SERVICE',30],['CERTIFICATE (CC/IC/NC)',60],['ONLINE APPLICATION',40]];
+let services=JSON.parse(localStorage.getItem('model_services')||'null')||defaults.map(x=>({name:x[0],price:x[1]}));
+let shopName=localStorage.getItem('model_shopName')||'SRI PALANIMURUGAN';
+let waWelcome=localStorage.getItem('model_waWelcome')||'Welcome to our service centre! 🙏';
+let waQuote=localStorage.getItem('model_waQuote')||'Thank you for visiting! 🙏';
+let upiIdSetting=localStorage.getItem('model_upiId')||'merchant@upi';
+let cart=[],pay='Cash',bills=JSON.parse(localStorage.getItem('model_bills')||'[]'),drafts=JSON.parse(localStorage.getItem('model_drafts')||'[]'),activeDraftId=null;
+const $=id=>document.getElementById(id),money=n=>'₹ '+Number(n||0).toFixed(2),dateKey=(d=new Date())=>{let z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())};
+
+function getMultiColorWordsHTML(text){
+  let words = (text || 'SRI PALANIMURUGAN').trim().split(/\s+/);
+  let colors = ['#ffffff', '#ff3fa4', '#00d9ff', '#ffe600', '#58f5ff', '#ff7a00'];
+  return words.map((w, i) => `<span style="color: ${colors[i % colors.length]} !important;">${w}</span>`).join(' ');
+}
+
+function updateShopNameUI(){
+ let currentName = shopName.trim() || 'SRI PALANIMURUGAN';
+ let coloredHTML = getMultiColorWordsHTML(currentName);
+ 
+ if($('headerShopName')) $('headerShopName').innerHTML = coloredHTML;
+ if($('footerShopName')) $('footerShopName').innerHTML = '🛡 ' + coloredHTML;
+ if($('modalShopHeader')) $('modalShopHeader').innerHTML = coloredHTML;
+}
+
+function syncMobileToSettings(val){
+ if($('directWaMobile') && $('directWaMobile') !== document.activeElement) $('directWaMobile').value = val;
+ if($('mobile') && $('mobile') !== document.activeElement) $('mobile').value = val;
+}
+
+function sendDirectWelcomeQuote(){
+ let mob = ($('directWaMobile').value || '').trim().replace(/\D/g, '');
+ if(!mob || mob.length < 10){
+   return alert('Please enter a valid 10-digit customer mobile number.');
+ }
+ if(mob.length === 10) mob = '91' + mob;
+ 
+ let currentName = shopName.trim() || 'SRI PALANIMURUGAN';
+ let currentWelcome = waWelcome.trim() || 'Welcome to our service centre! 🙏';
+ 
+ let msg = `*${currentName.toUpperCase()}*\n\n` +
+           `--------------------------------\n\n` +
+           `${currentWelcome}\n\n` +
+           `--------------------------------`;
+ 
+ let url = `whatsapp://send?phone=${mob}&text=${encodeURIComponent(msg)}`;
+ window.location.href = url;
+}
+
+function sendUpiPaymentLink(){
+ let mob = ($('mobile').value || $('directWaMobile').value || '').trim().replace(/\D/g, '');
+ if(!mob || mob.length < 10){
+   return alert('Please enter a valid 10-digit customer mobile number.');
+ }
+ if(mob.length === 10) mob = '91' + mob;
+
+ let t = total();
+ if(t <= 0) return alert('Total amount must be greater than zero to send a payment link.');
+
+ // If Cash + UPI payment mode is active, send only the UPI balance amount (without any change)
+ let paymentAmount = t;
+ if(pay === 'UPI' || pay === 'Cash + UPI'){
+   let customUpi = parseFloat($('customUpiAmount').value) || 0;
+   let givenCash = parseFloat($('given').value) || 0;
+   paymentAmount = customUpi > 0 ? customUpi : Math.max(0, t - givenCash);
+   if(paymentAmount <= 0) {
+     return alert('Enter a valid UPI amount.');
+   }
+ }
+
+ let currentName = shopName.trim() || 'SRI PALANIMURUGAN';
+ let currentUpi = upiIdSetting.trim() || 'merchant@upi';
+ 
+ // Construct standard UPI deep link/string with clear padding and space before UPI ID
+ let upiLink = `upi://pay?pa=${encodeURIComponent(currentUpi)}&pn=${encodeURIComponent(currentName)}&am=${paymentAmount.toFixed(2)}&cu=INR`;
+
+ let msg = `*${currentName.toUpperCase()}*\n\n` +
+           `--------------------------------\n\n` +
+           `💳 *UPI PAYMENT REQUEST*\n\n` +
+           `Amount: *₹${paymentAmount.toFixed(2)}*\n\n` +
+           `UPI ID:  ${currentUpi}\n\n` +
+           `--------------------------------\n\n` +
+           `Click the link below to pay via any UPI App (GPay, PhonePe, Paytm):\n\n` +
+           `${upiLink}\n\n` +
+           `--------------------------------\n\n` +
+           `Thank you! 🙏`;
+
+ let url = `whatsapp://send?phone=${mob}&text=${encodeURIComponent(msg)}`;
+ window.location.href = url;
+}
+
+function shareBillWhatsApp(billIndex){
+ if(billIndex < 0 || !bills[billIndex]) return alert("No bill selected.");
+ let b = bills[billIndex];
+ let currentName = shopName.trim() || 'SRI PALANIMURUGAN';
+ let currentQuote = waQuote.trim() || 'Thank you for visiting! 🙏';
+ 
+ let targetMobile = b.mobile && b.mobile !== '-' ? b.mobile.trim() : '';
+ if(!targetMobile || targetMobile.length < 10){
+    targetMobile = prompt("Enter 10-digit Customer Mobile Number to send WhatsApp bill:", targetMobile);
+    if(!targetMobile) return;
+ }
+ targetMobile = targetMobile.replace(/\D/g, '');
+ if(targetMobile.length === 10) targetMobile = '91' + targetMobile;
+
+ let itemLines = (b.itemDetails||[]).map(x => `* ${x.name} x ${x.qty} = ₹${x.total.toFixed(2)}`).join('\n');
+ if(!itemLines && b.items) itemLines = b.items.map(x => `* ${x}`).join('\n');
+
+ let payDetails = `💳 *Payment:* ${b.mode}\n`;
+ if(b.mode === 'Cash'){
+    payDetails += `💵 *Given Cash:* ₹${Number(b.cashGiven || b.amount).toFixed(2)}\n`;
+    payDetails += `🪙 *Balance/Change:* ₹${Number((b.cashGiven || b.amount) - b.amount).toFixed(2)}\n`;
+ } else if(b.mode === 'Cash + UPI'){
+    payDetails += `💵 *Cash Amount:* ₹${Number(b.cashGiven || 0).toFixed(2)}\n`;
+    payDetails += `📲 *UPI Amount:* ₹${Number(b.upiPaid || 0).toFixed(2)}\n`;
+    payDetails += `🪙 *Balance/Change:* ₹0.00\n`;
+ } else if(b.mode === 'UPI'){
+    payDetails += `📲 *UPI Amount:* ₹${Number(b.upiPaid || b.amount).toFixed(2)}\n`;
+    payDetails += `🪙 *Balance/Change:* ₹0.00\n`;
+ } else if(b.mode === 'Credit'){
+    payDetails += `💵 *Cash Received:* ₹${Number(b.cashGiven || 0).toFixed(2)}\n`;
+    payDetails += `📝 *Credit / Pending:* ₹${Number(b.creditPending || 0).toFixed(2)}\n`;
+ }
+
+ let msg = `*${currentName.toUpperCase()}*\n\n` +
+           `--------------------------------\n\n` +
+           `📄 *BILL RECEIPT*\n\n` +
+           `*Bill No:* ${b.no}\n\n` +
+           `*Date:* ${b.date} ${b.time}\n\n` +
+           `*Customer:* ${b.customer || 'Walk-in'}\n\n` +
+           `--------------------------------\n\n` +
+           `*ITEMS / SERVICES:*\n\n${itemLines}\n\n` +
+           `--------------------------------\n\n` +
+           `💰 *TOTAL AMOUNT: ₹${Number(b.amount).toFixed(2)}*\n\n` +
+           payDetails +
+           `--------------------------------\n\n` +
+           `${currentQuote}`;
+
+ let url = `whatsapp://send?phone=${targetMobile}&text=${encodeURIComponent(msg)}`;
+ window.location.href = url;
+}
+
+function downloadViewedBill(){
+ if(currentViewedBill < 0 || !bills[currentViewedBill]) return alert("No bill selected.");
+ let b = bills[currentViewedBill];
+ let currentName = shopName.trim() || 'SRI PALANIMURUGAN';
+ 
+ const pdfElement = document.createElement('div');
+ pdfElement.style.padding = '25px';
+ pdfElement.style.color = '#000';
+ pdfElement.style.background = '#fff';
+ pdfElement.style.fontFamily = 'Arial, sans-serif';
+
+ let itemsHtml = (b.itemDetails||[]).map(x=>
+   `<tr style="border-bottom: 1px solid #ddd;">
+      <td style="padding: 8px 0;">${x.name}</td>
+      <td style="padding: 8px 0; text-align: center;">${x.qty}</td>
+      <td style="padding: 8px 0; text-align: right;">${money(x.price)}</td>
+      <td style="padding: 8px 0; text-align: right;">${money(x.total)}</td>
+    </tr>`
+ ).join('');
+
+ pdfElement.innerHTML = `
+   <div style="text-align: center; border-bottom: 2px solid #008cff; padding-bottom: 10px; margin-bottom: 15px;">
+     <h1 style="margin: 0; color: #020817; font-size: 24px; text-transform: uppercase;">${currentName}</h1>
+   </div>
+   <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 13px;">
+     <div>
+       <b>Customer:</b> ${b.customer || 'Walk-in'}<br>
+       <b>Mobile:</b> ${b.mobile || '-'}
+     </div>
+     <div style="text-align: right;">
+       <b>Bill No:</b> ${b.no}<br>
+       <b>Date:</b> ${b.date} ${b.time}
+     </div>
+   </div>
+   <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+     <thead>
+       <tr style="border-bottom: 2px solid #000; text-align: left;">
+         <th style="padding: 8px 0;">Item / Service</th>
+         <th style="padding: 8px 0; text-align: center;">Qty</th>
+         <th style="padding: 8px 0; text-align: right;">Price</th>
+         <th style="padding: 8px 0; text-align: right;">Total</th>
+       </tr>
+     </thead>
+     <tbody>${itemsHtml}</tbody>
+   </table>
+   <div style="border-top: 2px solid #000; padding-top: 10px; font-size: 14px;">
+     <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; color: #000;">
+       <span>TOTAL AMOUNT:</span>
+       <span>${money(b.amount)}</span>
+     </div>
+     <div style="display: flex; justify-content: space-between; font-size: 12px; color: #444; margin-top: 5px;">
+       <span>Payment Method: ${b.mode}</span>
+     </div>
+   </div>
+   <div style="text-align: center; margin-top: 30px; font-size: 11px; color: #777; border-top: 1px dashed #ccc; padding-top: 8px;">
+     Thank you for your business!
+   </div>
+ `;
+
+ const opt = {
+   margin:       10,
+   filename:     `${b.no}.pdf`,
+   image:        { type: 'jpeg', quality: 0.98 },
+   html2canvas:  { scale: 2 },
+   jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
+ };
+
+ html2pdf().set(opt).from(pdfElement).save();
+}
+
+function saveDraft(){
+ if(!cart.length)return alert('Select at least one item before saving draft.');
+ let d=new Date();
+ let draft={
+  id:activeDraftId||('DRAFT-'+Date.now()),
+  date:dateKey(d),
+  time:d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+  customer:$('customer').value||'',
+  mobile:$('mobile').value||'',
+  items:cart.map(x=>({...x})),
+  payment:pay,
+  cashGiven:+$('given').value||0,
+  total:total()
+ };
+ let index=drafts.findIndex(x=>x.id===draft.id);
+ if(index>=0)drafts[index]=draft;else drafts.push(draft);
+ localStorage.setItem('model_drafts',JSON.stringify(drafts));
+ activeDraftId=null;
+ clearBill();$('customer').value='';$('mobile').value='';$('given').value=0;setPay('Cash');
+ alert('Draft saved successfully.');
+}
+function openDrafts(){drawDrafts();$('draftsModal').classList.add('show')}
+function closeDrafts(){$('draftsModal').classList.remove('show')}
+function drawDrafts(){
+ let list=drafts.slice().reverse();
+ $('draftsList').innerHTML=list.length?`<table class="all-bills-table"><thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Mobile</th><th>Items</th><th>Total</th><th>Action</th></tr></thead><tbody>${list.map(d=>`<tr><td>${d.date}</td><td>${d.time}</td><td>${d.customer||'Walk-in'}</td><td>${d.mobile||'-'}</td><td>${d.items.length}</td><td>${money(d.total)}</td><td><button class="bill-detail-btn" onclick="loadDraft('${d.id}')">CONTINUE</button> <button class="bill-detail-btn" style="background:#8b1738;border-color:#ff4f7d" onclick="deleteDraft('${d.id}')">DELETE</button></td></tr>`).join('')}</tbody></table>`:'<p>No saved drafts.</p>';
+}
+function loadDraft(id){
+ let d=drafts.find(x=>x.id===id);if(!d)return;
+ activeDraftId=id;
+ cart=d.items.map(x=>({...x}));
+ $('customer').value=d.customer||'';
+ $('mobile').value=d.mobile||'';
+ syncMobileToSettings(d.mobile||'');
+ $('given').value=d.cashGiven||0;
+ setPay(d.payment||'Cash');
+ drawCart();
+ closeDrafts();
+}
+function deleteDraft(id){
+ if(!confirm('Delete this draft?'))return;
+ drafts=drafts.filter(x=>x.id!==id);
+ localStorage.setItem('model_drafts',JSON.stringify(drafts));
+ if(activeDraftId===id)activeDraftId=null;
+ drawDrafts();
+}
+function removeActiveDraftAfterCheckout(){
+ if(!activeDraftId)return;
+ drafts=drafts.filter(x=>x.id!==activeDraftId);
+ localStorage.setItem('model_drafts',JSON.stringify(drafts));
+ activeDraftId=null;
+}
+function openBills(){
+ // Always reopen ALL BILLS with fresh/default filters.
+ billModeFilter='ALL';
+ if($('billSearchMonth')) $('billSearchMonth').value='';
+ if($('billSearchDate')) $('billSearchDate').value='';
+ if($('billSearchName')) $('billSearchName').value='';
+ if($('billSearchMobile')) $('billSearchMobile').value='';
+ if($('billSearchValue')) $('billSearchValue').value='';
+ populateMonthDropdown();
+ if($('billSearchMonth')) $('billSearchMonth').value='';
+ drawAllBills();
+ $('billsModal').classList.add('show');
+}
+function closeBills(){$('billsModal').classList.remove('show')}
+let billModeFilter='ALL';
+function setBillMode(m){billModeFilter=m;drawAllBills()}
+function clearBillSearch(){
+ $('billSearchMonth').value='';$('billSearchDate').value='';$('billSearchName').value='';$('billSearchMobile').value='';$('billSearchValue').value='';billModeFilter='ALL';drawAllBills();
+}
+
+function populateMonthDropdown(){
+ let monthSet = new Set();
+ bills.forEach(b=>{
+   if(b.date && b.date.length>=7){
+     monthSet.add(b.date.substring(0,7)); // YYYY-MM
+   }
+ });
+ let sortedMonths = Array.from(monthSet).sort().reverse();
+ let currentSelected = $('billSearchMonth').value;
+ 
+ let html = '<option value="">-- All Months --</option>';
+ sortedMonths.forEach(m=>{
+   let [yr, mo] = m.split('-');
+   let monthName = new Date(yr, mo - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+   html += `<option value="${m}" ${currentSelected===m?'selected':''}>${monthName}</option>`;
+ });
+ $('billSearchMonth').innerHTML = html;
+}
+
+function drawAllBills(){
+ let selMonth=$('billSearchMonth')?.value||'',d=$('billSearchDate')?.value||'',n=($('billSearchName')?.value||'').toLowerCase(),m=($('billSearchMobile')?.value||'').toLowerCase(),v=$('billSearchValue')?.value||'';
+ 
+ let list=bills.filter(b=>{
+   let bMonth = b.date ? b.date.substring(0,7) : '';
+   return (!selMonth || bMonth === selMonth) &&
+          (!d || b.date === d) &&
+          (!n || String(b.customer||'').toLowerCase().includes(n)) &&
+          (!m || String(b.mobile||'').toLowerCase().includes(m)) &&
+          (!v || Number(b.amount) === Number(v)) &&
+          (billModeFilter === 'ALL' || (billModeFilter === 'CREDIT' ? billCreditPending(b) > 0 && !b.voided : billModeFilter === 'VOID' ? !!b.voided : !b.voided && b.mode === billModeFilter));
+ }).slice().reverse();
+
+ $('allBillsList').innerHTML=list.length?`<table class="all-bills-table"><thead><tr><th>Date</th><th>Time</th><th>Bill No</th><th>Customer</th><th>Mobile</th><th>Total</th><th>Payment</th><th>Details</th></tr></thead><tbody>${list.map((b)=>{let i=bills.indexOf(b);return `<tr><td>${b.date}</td><td>${b.time}</td><td>${b.no}</td><td>${b.customer||'-'}</td><td>${b.mobile||'-'}</td><td>${money(b.amount)}</td><td>${b.voided?'<span style="color:#ff6b6b;font-weight:800">VOID</span>':b.mode}</td><td><button class="bill-detail-btn" onclick="showFullBill(${i})">VIEW</button></td></tr>`}).join('')}</tbody></table>`:'<p>No matching bills found.</p>';
+ $('fullBillDetail').innerHTML='';
+}
+let currentViewedBill=-1;
+function voidBill(i){
+  let b=bills[i];
+  if(!b || b.voided)return;
+  if(!confirm(`Void Bill ${b.no}?\nThis bill will be excluded from totals and reports.`))return;
+  b.voided=true;
+  b.voidedDate=dateKey();
+  b.voidedTime=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  b.creditPending=0;
+  localStorage.setItem('model_bills',JSON.stringify(bills));
+  drawAllBills(); summary(); drawHistory(); updateCreditDashboard(); updateTopPendingCredit();
+}
+function showFullBill(i){
+ currentViewedBill=i;
+ let b=bills[i],items=b.itemDetails||[];
+ let itemsHtml=items.length?items.map(x=>`<div class="detail-item"><span>${x.name} × ${x.qty} @ ${money(x.price)}</span><b>${money(x.total)}</b></div>`).join(''):(b.items||[]).map(x=>`<div class="detail-item"><span>${x}</span><b>-</b></div>`).join('');
+ $('billDetailPopup').innerHTML=`<div class="bill-detail-card"><h3>FULL BILL DETAILS - ${b.no}</h3>
+ <div class="detail-item"><span>Date / Time</span><b>${b.date} ${b.time}</b></div>
+ <div class="detail-item"><span>Customer</span><b>${b.customer||'-'}</b></div>
+ <div class="detail-item"><span>Mobile</span><b>${b.mobile||'-'}</b></div>
+ <h3>Items / Services</h3>${itemsHtml}
+ <div class="detail-item"><span>Payment Mode</span><b>${b.mode}</b></div>
+ ${b.mode==='Cash'?`<div class="detail-item"><span>Cash Given</span><b>${money(b.cashGiven||b.amount)}</b></div><div class="detail-item"><span>Change/Balance</span><b>${money((b.cashGiven||b.amount)-b.amount)}</b></div>`:''}
+ ${b.mode==='Cash + UPI'?`<div class="detail-item"><span>Cash</span><b>${money(b.cashGiven||0)}</b></div><div class="detail-item"><span>UPI</span><b>${money(b.upiPaid||0)}</b></div>`:''}
+ ${b.mode==='UPI'?`<div class="detail-item"><span>UPI Paid</span><b>${money(b.upiPaid||b.amount)}</b></div>`:''}
+ <div class="detail-item" style="font-size:22px;color:#00d9ff"><span>GRAND TOTAL</span><b>${money(b.amount)}</b></div>
+ ${!b.voided?`<div style="margin-top:14px;text-align:right"><button class="bill-detail-btn" style="background:#7f1d1d;color:#fff;border-color:#991b1b" onclick="voidBill(${i});closeBillDetail()">VOID BILL</button></div>`:`<div style="margin-top:14px;text-align:right;color:#ff6b6b;font-weight:800">VOIDED BILL</div>`}</div>`;
+ $('billDetailModal').classList.add('show');
+}
+function closeBillDetail(){$('billDetailModal').classList.remove('show')}
+function navigateBill(step){
+ if(!bills.length)return;
+ let next=currentViewedBill+step;
+ if(next<0)next=bills.length-1;
+ if(next>=bills.length)next=0;
+ showFullBill(next);
+}
+function openSettings(){
+ $('shopNameInput').value=shopName;
+ $('waWelcomeInput').value=waWelcome;
+ $('waQuoteInput').value=waQuote;
+ $('upiIdInput').value=upiIdSetting;
+ drawSettings();
+ $('settingsModal').classList.add('show');
+}
+function closeSettings(){$('settingsModal').classList.remove('show')}
+function drawSettings(){$('settingsServiceList').innerHTML=services.map((x,i)=>`<div class="service-edit-row" style="grid-template-columns:1fr 130px 75px 85px"><input id="sn${i}" value="${x.name}" onkeydown="if(event.key==='Enter'){$('sp'+${i}).focus();event.preventDefault();}"><input id="sp${i}" type="number" min="0" value="${x.price}" onkeydown="if(event.key==='Enter'){saveService(${i});event.preventDefault();}"><button onclick="saveService(${i})">SAVE</button><button style="background:#8b1738;border-color:#ff4f7d" onclick="removeService(${i})">REMOVE</button></div>`).join('')}
+function addServiceFromSettings(){
+ let n=$('settingNewName').value.trim(),p=parseFloat($('settingNewPrice').value);
+ if(!n||!Number.isFinite(p)||p<0)return alert('Enter valid service name and price.');
+ services.push({name:n.toUpperCase(),price:p});
+ localStorage.setItem('model_services',JSON.stringify(services));
+ $('settingNewName').value='';$('settingNewPrice').value='';
+ drawServices();drawSettings();
+}
+function removeService(i){
+ if(!confirm('Remove '+services[i].name+' from service list?'))return;
+ services.splice(i,1);
+ localStorage.setItem('model_services',JSON.stringify(services));
+ drawServices();drawSettings();
+}
+function saveService(i){let n=$('sn'+i).value.trim(),p=parseFloat($('sp'+i).value);if(!n||!Number.isFinite(p)||p<0)return alert('Enter valid name and price.');services[i]={name:n.toUpperCase(),price:p};localStorage.setItem('model_services',JSON.stringify(services));drawServices();drawSettings()}
+function saveAllServices(){
+ services=services.map((x,i)=>({name:$('sn'+i).value.trim().toUpperCase()||x.name,price:Math.max(0,parseFloat($('sp'+i).value)||0)}));
+ localStorage.setItem('model_services',JSON.stringify(services));
+ 
+ shopName = $('shopNameInput').value.trim() || 'SRI PALANIMURUGAN';
+ localStorage.setItem('model_shopName', shopName);
+
+ waWelcome = $('waWelcomeInput').value.trim() || 'Welcome to our service centre! 🙏';
+ localStorage.setItem('model_waWelcome', waWelcome);
+
+ waQuote = $('waQuoteInput').value.trim() || 'Thank you for visiting! 🙏';
+ localStorage.setItem('model_waQuote', waQuote);
+
+ upiIdSetting = $('upiIdInput').value.trim() || 'merchant@upi';
+ localStorage.setItem('model_upiId', upiIdSetting);
+
+ updateShopNameUI();
+ drawServices();drawSettings();alert('All changes saved successfully.')
+}
+function drawServices(){let q=$('search').value.toLowerCase();$('services').innerHTML=services.map((s,i)=>({s,i})).filter(x=>x.s.name.toLowerCase().includes(q)).map(x=>`<button class="service" onclick="addItem(${x.i})"><span>${x.s.name}</span><small>${money(x.s.price)}</small></button>`).join('')}
+function handleSearchKeyDown(e){
+ if(e.key==='Enter'){
+  let q=$('search').value.toLowerCase();
+  let matches=services.map((s,i)=>({s,i})).filter(x=>x.s.name.toLowerCase().includes(q));
+  if(matches.length>0){
+    addItem(matches[0].i);
+    $('search').value='';
+    drawServices();
+    e.preventDefault();
+  }
+ }
+}
+function addItem(i){let x=cart.find(x=>x.name===services[i].name);x?x.qty++:cart.push({...services[i],qty:1});drawCart()}function updateQty(i,v){cart[i].qty=Math.max(1,+v||1);drawCart()}function removeItem(i){cart.splice(i,1);drawCart()}function total(){return cart.reduce((a,x)=>a+x.price*x.qty,0)}
+function drawCart(){$('cart').innerHTML=cart.map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${x.price.toFixed(2)}</td><td><input class="qty" type="number" min="1" value="${x.qty}" onchange="updateQty(${i},this.value)" onkeydown="if(event.key==='Enter'){focusFirstCartOrCheckout();event.preventDefault();}"></td><td>${(x.price*x.qty).toFixed(2)}</td><td class="trash" onclick="removeItem(${i})">🗑</td></tr>`).join('');$('total').textContent=total().toFixed(2);calcChange()}
+
+if(typeof calcChange==='function') calcChange();
+
+if(typeof calcChange==='function') calcChange();
+function focusFirstCartOrCheckout(){
+ if($('customer')){$('customer').focus();}
+}
+function clearBill(){cart=[];drawCart()}
+function setPay(p){
+ pay=p;
+ if($('cashPay')) $('cashPay').classList.toggle('active',p==='Cash');
+ if($('upiPay')) $('upiPay').classList.toggle('active',p==='UPI');
+ if($('splitPay')) $('splitPay').classList.toggle('active',p==='Cash + UPI');
+ if($('creditPay')) $('creditPay').classList.toggle('active',p==='Credit');
+
+ const cashBox=$('cashPaymentBox'), upiBox=$('upiPaymentBox'), creditBox=$('creditPaymentBox');
+ if(cashBox) cashBox.style.display=(p==='UPI')?'none':'block';
+ if(upiBox) upiBox.style.display=(p==='UPI'||p==='Cash + UPI')?'block':'none';
+ if($('customUpiRow')) $('customUpiRow').style.display=(p==='UPI'||p==='Cash + UPI')?'block':'none';
+ if(p!=='UPI' && p!=='Cash + UPI' && $('customUpiAmount')) $('customUpiAmount').value=0;
+ if(creditBox) creditBox.style.display=(p==='Credit')?'block':'none';
+
+ if($('given')){
+   $('given').disabled=(p==='UPI');
+   if(p==='UPI') $('given').value=0;
+ }
+ if($('autoUpiBalance')) $('autoUpiBalance').style.display=(p==='Cash + UPI')?'block':'none';
+ if(p==='Credit') calcChange();
+ else if(p==='Cash') calcChange();
+ else if($('change')) $('change').textContent='0.00';
+}
+function cash(v){$('given').value=v;calcChange()}
+function exact(){cash(total())}
+function calcChange(){
+ let given=+$('given').value||0,t=total();
+ let customUpi=+$('customUpiAmount')?.value||0;
+ let pending=0;
+
+ if(pay==='UPI'){
+   pending=Math.max(0,t-customUpi);
+ }else if(pay==='Cash + UPI'){
+   if(customUpi>0){
+     pending=Math.max(0,t-given-customUpi);
+   }else{
+     pending=Math.max(0,t-given);
+   }
+ }else{
+   pending=Math.max(0,t-given);
+ }
+
+ if($('change')) $('change').textContent=Math.max(0,given-t).toFixed(2);
+ if($('upiBalance')) $('upiBalance').textContent=pending.toFixed(2);
+ if($('creditBalance')) $('creditBalance').textContent=pending.toFixed(2);
+ if($('bottomCreditValue')) $('bottomCreditValue').textContent=pending.toFixed(2);
+ if($('customUpiDisplay')) $('customUpiDisplay').textContent=customUpi.toFixed(2);
+}
+
+
+// POPUP CONFIRMATION FUNCTIONS
+function confirmCashAction(actionFn, labelText) {
+  $('confirmModalText').textContent = `Set Cash Given to ${labelText}?`;
+  let yesBtn = $('confirmYesBtn');
+  let newBtn = yesBtn.cloneNode(true);
+  yesBtn.parentNode.replaceChild(newBtn, yesBtn);
+  $('confirmYesBtn').addEventListener('click', function() {
+    actionFn();
+    closeConfirmModal();
+  });
+  $('confirmModal').classList.add('show');
+}
+function closeConfirmModal() {
+  $('confirmModal').classList.remove('show');
+}
+
+function checkout(){
+ if(!cart.length)return alert('Select service items.');
+ let given=+$('given').value||0,t=total(),upiPaid=0,creditPending=0;
+
+ if(pay==='Cash' && given<t)return alert('Cash given is less than total.');
+ if(pay==='UPI'){
+    let customUpi=+$('customUpiAmount').value||0;
+    if(customUpi<=0)return alert('Enter UPI amount.');
+    if(customUpi>t)return alert('UPI amount cannot be greater than total.');
+    upiPaid=customUpi;
+    creditPending=Math.max(0,t-upiPaid);
+ }
+ if(pay==='Cash + UPI'){
+    let customUpi=+$('customUpiAmount').value||0;
+    if(given<=0)return alert('Enter Cash amount.');
+    if(customUpi<=0)return alert('Enter UPI amount.');
+    if(given+customUpi>t)return alert('Cash + UPI amount cannot be greater than total.');
+    upiPaid=customUpi;
+    creditPending=Math.max(0,t-given-upiPaid);
+ }
+ if(pay==='Credit'){
+   if(given<0)return alert('Cash received cannot be negative.');
+   if(given>=t)return alert('Cash received must be less than the total to create Credit.');
+   creditPending=t-given;
+ }
+
+ let d=new Date(),customer=$('customer').value||'Walk-in',mobile=$('mobile').value||'-';
+ let billItems=cart.map(x=>({name:x.name,qty:x.qty,price:x.price,total:x.price*x.qty}));
+ let b={no:'BILL-'+String(bills.length+1).padStart(5,'0'),date:dateKey(d),time:d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),customer:customer,mobile:mobile,amount:t,mode:pay,items:billItems.map(x=>x.name+' x '+x.qty),itemDetails:billItems,cashGiven:pay==='Cash'||pay==='Cash + UPI'||pay==='Credit'?given:0,upiPaid:(pay==='UPI'||pay==='Cash + UPI')?upiPaid:0,creditPending:creditPending};
+ bills.push(b);localStorage.setItem('model_bills',JSON.stringify(bills));removeActiveDraftAfterCheckout();
+
+ let change=pay==='Cash'?Math.max(0,given-t):0;
+ updateShopNameUI();
+ $('billSummaryContent').innerHTML=
+ `<div class="summary-line"><span>Bill No</span><b>${b.no}</b></div>
+  <div class="summary-line"><span>Date / Time</span><b>${b.date} ${b.time}</b></div>
+  <div class="summary-line"><span>Customer</span><b>${customer}</b></div><div class="summary-line"><span>Mobile No.</span><b>${mobile}</b></div>
+  <div class="summary-items">${billItems.map(x=>`<div class="summary-line"><span>${x.name} × ${x.qty}</span><b>${money(x.total)}</b></div>`).join('')}</div>
+  <div class="summary-line"><span>Payment Method</span><b>${pay}</b></div>
+  ${pay==='Cash'?`<div class="summary-line"><span>Given Cash</span><b>${money(given)}</b></div><div class="summary-line"><span>Change / Balance</span><b>${money(change)}</b></div>`:pay==='Cash + UPI'?`<div class="summary-line"><span>Cash Paid</span><b>${money(Math.min(given,t))}</b></div><div class="summary-line"><span>UPI Paid</span><b>${money(upiPaid)}</b></div><div class="summary-line"><span>Credit / Pending</span><b>${money(creditPending)}</b></div>`:pay==='UPI'?`<div class="summary-line"><span>UPI Paid</span><b>${money(upiPaid)}</b></div><div class="summary-line"><span>Credit / Pending</span><b>${money(creditPending)}</b></div>`:pay==='Credit'?`<div class="summary-line"><span>Cash Received</span><b>${money(given)}</b></div><div class="summary-line"><span>Credit / Pending</span><b>${money(creditPending)}</b></div>`:''}
+  <div class="summary-line summary-total"><span>TOTAL</span><span>${money(t)}</span></div>`;
+ $('billSummaryModal').classList.add('show');
+ clearBill();$('customer').value='';$('mobile').value='';syncMobileToSettings('');$('given').value=0;if($('customUpiAmount')) $('customUpiAmount').value=0;newBillNo();summary();drawHistory();
+updateTopPendingCredit();
+  updateCreditDashboard();
+}
+function closeBillSummary(){
+$('billSummaryModal').classList.remove('show');
+setPay(pay);
+}
+function newBillNo(){$('billNo').textContent='BILL-'+String(bills.length+1).padStart(5,'0')}function summary(){
+  let x=bills.filter(b=>b.date===dateKey()&&!b.voided);
+  let c=x.filter(b=>b.mode==='Cash').reduce((a,b)=>a+Number(b.amount||0),0);
+  let u=x.filter(b=>b.mode==='UPI').reduce((a,b)=>a+Number(b.upiPaid||b.amount||0),0);
+  let pending=getPendingCreditTotal();
+  let todayBillValue=x.reduce((a,b)=>a+Number(b.amount||b.total||0),0);
+
+  if($('bills')) $('bills').textContent=x.length;
+  if($('cashSales')) $('cashSales').textContent=money(c);
+  if($('upiSales')) $('upiSales').textContent=money(u);
+  if($('todayTotal')) $('todayTotal').textContent=money(todayBillValue);
+  if($('pendingSales')) $('pendingSales').textContent=money(pending);
+
+  updateTopPendingCredit();
+}
+
+function updateCreditDashboard(){
+  let current=JSON.parse(localStorage.getItem('model_bills')||'[]');
+  let pending=current.reduce((sum,b)=>sum+billCreditPending(b),0);
+  let el=$('pendingSales');
+  if(el) el.textContent=money(pending);
+}
+function drawHistory(){
+ let d=dateKey(),x=bills.filter(b=>b.date===d).slice().reverse();
+ $('history').innerHTML=x.map(b=>`<tr><td>${b.time}</td><td>${b.no}</td><td>${b.customer||'-'}</td><td>${b.mobile||'-'}</td><td style="color:#63ff4a">${money(b.amount)}</td><td><span class="badge ${b.mode==='Cash'?'bcash':(b.mode==='Credit'?'bcredit':'bupi')}">${b.mode}</span></td></tr>`).join('');
+}
+function addOtherItem(){
+ let n=$('otherName').value.trim(),p=parseFloat($('otherPrice').value),q=parseInt($('otherQty').value);
+ if(!n||!Number.isFinite(p)||p<0||!Number.isFinite(q)||q<1)return alert('Enter valid item name, price and quantity.');
+ cart.push({name:n.toUpperCase(),price:p,qty:q});
+ $('otherName').value='';$('otherPrice').value='';$('otherQty').value=1;drawCart();
+}
+function addService(){let n=prompt('Service name:');if(!n)return;let p=+prompt('Price ₹:');if(isNaN(p))return;services.push({name:n.toUpperCase(),price:p});localStorage.setItem('model_services',JSON.stringify(services));drawServices()}
+function downloadFilteredBillsReport(){
+  let selMonth=$('billSearchMonth')?.value||'',d=$('billSearchDate')?.value||'',n=($('billSearchName')?.value||'').toLowerCase(),m=($('billSearchMobile')?.value||'').toLowerCase(),v=$('billSearchValue')?.value||'';
+  let list=bills.filter(b=>{
+    let bMonth=b.date?b.date.substring(0,7):'';
+    return (!selMonth||bMonth===selMonth)&&(!d||b.date===d)&&(!n||String(b.customer||'').toLowerCase().includes(n))&&(!m||String(b.mobile||'').toLowerCase().includes(m))&&(!v||Number(b.amount)===Number(v))&&(billModeFilter==='ALL'? !b.voided : billModeFilter==='CREDIT' ? billCreditPending(b)>0&&!b.voided : billModeFilter==='VOID' ? !!b.voided : !b.voided&&b.mode===billModeFilter);
+  }).slice().reverse();
+  if(!list.length)return alert('No matching bills found.');
+  let rows=list.map(b=>({
+    'Date':b.date||'',
+    'Time':b.time||'',
+    'Bill No':b.no||'',
+    'Customer Name':b.customer||'-',
+    'Mobile Number':b.mobile||'-',
+    'Services / Items':(b.items||[]).join('; '),
+    'Bill Value':Number(b.amount||0),
+    'Cash Paid':Number(b.cashGiven||0),
+    'UPI Paid':Number(b.upiPaid||0),
+    'Credit / Pending':Number(billCreditPending(b)||0),
+    'Payment Mode':b.mode||''
+  }));
+  if(typeof XLSX!=='undefined'){
+    let ws=XLSX.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:12},{wch:10},{wch:15},{wch:24},{wch:16},{wch:45},{wch:13},{wch:13},{wch:13},{wch:16},{wch:16}];
+    let wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Filtered Bills');
+    XLSX.writeFile(wb,'Billing_Filtered_Report.xlsx');
+    return;
+  }
+  let header=Object.keys(rows[0]);
+  let csv='\uFEFF'+[header,...rows.map(r=>header.map(h=>r[h]))].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='Billing_Filtered_Report.csv';a.click();
+}
+function exportCSV(){
+ let rows=[['Date','Time','Bill No','Customer Name','Mobile Number','Services / Items','Amount','Mode'],...bills.map(b=>[
+  `"${b.date||''}"`,
+  `"${b.time||''}"`,
+  `"${b.no||''}"`,
+  `"${b.customer||'-'}"`,
+  `"${b.mobile||'-'}"`,
+  `"${(b.items||[]).join('; ')}"`,
+  `"${b.amount||0}"`,
+  `"${b.mode||''}"`
+])],csv='\uFEFF'+rows.map(r=>r.join(',')).join('\n'),a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+ a.download='Billing_Report.csv';
+ a.click();
+}
+setPay('Cash');
+function openDashboard(){
+ let now=new Date(),prefix=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+ let x=bills.filter(b=>String(b.date||'').startsWith(prefix)&&!b.voided);
+ let total=x.reduce((a,b)=>a+Number(b.amount||0),0),cash=0,upi=0,credit=0;
+ x.forEach(b=>{
+  if(b.mode==='Cash')cash+=Number(b.amount||0);
+  else if(b.mode==='UPI')upi+=Number(b.amount||0);
+  else if(b.mode==='Cash + UPI'){
+   cash+=Number(b.cashGiven||0);
+   upi+=Number(b.upiPaid||Math.max(0,Number(b.amount||0)-Number(b.cashGiven||0)));
+  }
+ });
+ $('dashboardMonth').textContent=now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+ $('monthBills').textContent=x.length;
+ $('monthTotal').textContent=money(total);
+ $('monthCash').textContent=money(cash);
+ $('monthUpi').textContent=money(upi);
+ $('monthCredit').textContent=money(x.reduce((sum,b)=>sum+billCreditPending(b),0));
+
+ // Calculate repeat customer count (mobile based, >= 2 bills)
+ let customerMap={};
+ bills.forEach(b=>{
+   let mob=(b.mobile||'').trim();
+   if(mob && mob!=='-' && mob.length>=10){
+     customerMap[mob]=(customerMap[mob]||0)+1;
+   }
+ });
+ let repeatCountActual=Object.values(customerMap).filter(c=>c>=2).length;
+ $('monthRepeatCount').textContent = repeatCountActual;
+
+ // Month-wise summary breakdown builder
+ let monthMap = {};
+ bills.forEach(b => {
+   if (!b.date || b.voided) return;
+   let mKey = b.date.substring(0, 7); // YYYY-MM
+   if (!monthMap[mKey]) {
+     monthMap[mKey] = { billsCount: 0, totalAmount: 0, cashAmount: 0, upiAmount: 0, creditAmount: 0 };
+   }
+   monthMap[mKey].billsCount++;
+   let amt = Number(b.amount || 0);
+   monthMap[mKey].totalAmount += amt;
+
+   if (b.mode === 'Cash') {
+     monthMap[mKey].cashAmount += amt;
+   } else if (b.mode === 'UPI') {
+     monthMap[mKey].upiAmount += amt;
+   } else if (b.mode === 'Cash + UPI') {
+     let cGiven = Number(b.cashGiven || 0);
+     let uPaid = Number(b.upiPaid || Math.max(0, amt - cGiven));
+     monthMap[mKey].cashAmount += cGiven;
+     monthMap[mKey].upiAmount += uPaid;
+   }
+   monthMap[mKey].creditAmount += billCreditPending(b);
+ });
+
+ let sortedMonths = Object.keys(monthMap).sort().reverse();
+ 
+ // Calculate overall totals across all months
+ let overallBillsCount = 0;
+ let overallCashAmount = 0;
+ let overallUpiAmount = 0;
+ let overallTotalAmount = 0;
+ let overallCreditAmount = 0;
+
+ sortedMonths.forEach(m => {
+   let data = monthMap[m];
+   overallBillsCount += data.billsCount;
+   overallCashAmount += data.cashAmount;
+   overallUpiAmount += data.upiAmount;
+   overallTotalAmount += data.totalAmount;
+   overallCreditAmount += data.creditAmount;
+ });
+
+ $('monthWiseSummaryList').innerHTML = sortedMonths.length ? `
+   <table class="all-bills-table" style="margin-top:10px;">
+     <thead>
+       <tr>
+         <th>Month</th>
+         <th>Total Bills</th>
+         <th>Cash Sales</th>
+         <th>UPI Sales</th>
+         <th>Credit Amount</th>
+         <th>Total Revenue</th>
+       </tr>
+     </thead>
+     <tbody>
+       ${sortedMonths.map(m => {
+         let data = monthMap[m];
+         let [yr, mo] = m.split('-');
+         let monthName = new Date(yr, mo - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+         return `
+           <tr>
+             <td><b>${monthName}</b></td>
+             <td><span class="badge bupi">${data.billsCount} Bills</span></td>
+             <td style="color:#53e9ff">${money(data.cashAmount)}</td>
+             <td style="color:#ff62b8">${money(data.upiAmount)}</td>
+             <td style="color:#ff9f9f">${money(data.creditAmount)}</td>
+             <td style="color:#63ff4a"><b>${money(data.totalAmount)}</b></td>
+           </tr>
+         `;
+       }).join('')}
+       <tr style="background:rgba(0,217,255,0.08); border-top:2px solid #00d9ff;">
+         <td><b>OVERALL TOTAL</b></td>
+         <td><span class="badge bupi" style="background:#087cc8;">${overallBillsCount} Bills</span></td>
+         <td style="color:#53e9ff"><b>${money(overallCashAmount)}</b></td>
+         <td style="color:#ff62b8"><b>${money(overallUpiAmount)}</b></td>
+         <td style="color:#ff9f9f"><b>${money(overallCreditAmount)}</b></td>
+         <td style="color:#63ff4a"><b>${money(overallTotalAmount)}</b></td>
+       </tr>
+     </tbody>
+   </table>
+ ` : '<p style="text-align:center; padding:15px; color:#a9c9e8;">No billing records found for month-wise summary.</p>';
+
+ $('dashboardModal').classList.add('show');
+}
+function closeDashboard(){$('dashboardModal').classList.remove('show')}
+
+function openRepeatCustomerModal(){
+  let customerMap={};
+  bills.filter(b=>!b.voided).forEach(b=>{
+    let mob=(b.mobile||'').trim();
+    if(mob && mob!=='-' && mob.length>=10){
+      if(!customerMap[mob]){
+        customerMap[mob]={mobile:mob,name:b.customer||'Walk-in',bills:[],totalSpent:0};
+      }
+      customerMap[mob].bills.push(b);
+      customerMap[mob].totalSpent+=Number(b.amount||0);
+      if(b.customer && b.customer!=='Walk-in'){
+        customerMap[mob].name=b.customer; // keep latest or most frequent name
+      }
+    }
+  });
+
+  // Filter only customers with >= 2 bills
+  let repeatList = Object.values(customerMap).filter(c=>c.bills.length>=2).sort((a,b)=>b.bills.length-a.bills.length);
+
+  $('repeatCustomerList').innerHTML = repeatList.length ? `
+    <table class="all-bills-table">
+      <thead>
+        <tr>
+          <th>Customer Name</th>
+          <th>Mobile No</th>
+          <th>Total Visits / Bills</th>
+          <th>Total Spent</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${repeatList.map(c=>`
+          <tr>
+            <td>${c.name}</td>
+            <td><b>${c.mobile}</b></td>
+            <td><span class="badge bupi">${c.bills.length} Bills</span></td>
+            <td style="color:#63ff4a">${money(c.totalSpent)}</td>
+            <td><button class="bill-detail-btn" onclick="viewCustomerBills('${c.mobile}')">VIEW BILLS</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : '<p style="text-align:center; padding:20px; color:#a9c9e8;">No repeat customers found yet (customers with 2 or more bills based on mobile number).</p>';
+
+  $('repeatCustomerModal').classList.add('show');
+}
+function closeRepeatCustomerModal(){$('repeatCustomerModal').classList.remove('show')}
+
+function viewCustomerBills(mobile){
+  let matchedBills = bills.filter(b=>(b.mobile||'').trim()===mobile).slice().reverse();
+  let custName = matchedBills.length && matchedBills[0].customer ? matchedBills[0].customer : 'Customer';
+  
+  $('custModalTitle').textContent = custName + ' (' + mobile + ')';
+  $('custModalSubtitle').textContent = 'Total Visits: ' + matchedBills.length + ' | Total Spend: ' + money(matchedBills.reduce((acc,b)=>acc+Number(b.amount||0),0));
+
+  $('customerBillsList').innerHTML = `
+    <table class="all-bills-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Bill No</th>
+          <th>Items / Services</th>
+          <th>Amount</th>
+          <th>Mode</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${matchedBills.map(b=>{
+          let globalIdx = bills.indexOf(b);
+          let itemNames = (b.itemDetails||[]).map(x=>x.name+' x'+x.qty).join(', ');
+          if(!itemNames && b.items) itemNames = b.items.join(', ');
+          return `
+            <tr>
+              <td>${b.date}</td>
+              <td>${b.time}</td>
+              <td>${b.no}</td>
+              <td style="max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${itemNames}">${itemNames}</td>
+              <td style="color:#63ff4a">${money(b.amount)}</td>
+              <td>${b.mode}</td>
+              <td><button class="bill-detail-btn" onclick="showFullBill(${globalIdx}); closeCustomerBillsModal(); closeRepeatCustomerModal();">VIEW</button></td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+  $('customerBillsModal').classList.add('show');
+}
+function closeCustomerBillsModal(){$('customerBillsModal').classList.remove('show')}
+
+function openBackupModal(){$('backupModal').classList.add('show')}
+function closeBackupModal(){$('backupModal').classList.remove('show')}
+function chooseRestore(){$('restoreFile').click()}
+function downloadBackup(){
+ const data={
+  app:'Yashika Systems Billing Software',
+  version:1,
+  backupDate:new Date().toISOString(),
+  shopName:shopName,
+  waWelcome:waWelcome,
+  waQuote:waQuote,
+  upiIdSetting:upiIdSetting,
+  services:services,
+  bills:bills,
+  drafts:drafts
+ };
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='Yashika_Systems_Backup_'+dateKey()+'.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ alert('Backup downloaded successfully.');
+}
+function restoreData(event){
+ const file=event.target.files[0];if(!file)return;
+ const reader=new FileReader();
+ reader.onload=function(){
+  try{
+   const data=JSON.parse(reader.result);
+   if(!data||!Array.isArray(data.services)||!Array.isArray(data.bills))throw new Error('Invalid backup');
+   if(!confirm('Restore this backup? Current services, bills and drafts will be replaced.'))return;
+   services=data.services;
+   bills=data.bills;
+   drafts=Array.isArray(data.drafts)?data.drafts:[];
+   if(data.shopName){
+     shopName=data.shopName;
+     localStorage.setItem('model_shopName',shopName);
+   }
+   if(data.waWelcome){
+     waWelcome=data.waWelcome;
+     localStorage.setItem('model_waWelcome',waWelcome);
+   }
+   if(data.waQuote){
+     waQuote=data.waQuote;
+     localStorage.setItem('model_waQuote',waQuote);
+   }
+   if(data.upiIdSetting){
+     upiIdSetting=data.upiIdSetting;
+     localStorage.setItem('model_upiId',upiIdSetting);
+   }
+   localStorage.setItem('model_services',JSON.stringify(services));
+   localStorage.setItem('model_bills',JSON.stringify(bills));
+   localStorage.setItem('model_drafts',JSON.stringify(drafts));
+   updateShopNameUI();drawServices();summary();drawHistory();newBillNo();
+   alert('Backup restored successfully.');
+  }catch(e){alert('Invalid or damaged backup file.');}
+  event.target.value='';
+ };
+ reader.readAsText(file);
+}
+setInterval(()=>$('clock').innerHTML='📅 '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'&nbsp;&nbsp;&nbsp; 🕘 '+new Date().toLocaleTimeString(),1000);
+updateShopNameUI();drawServices();drawCart();newBillNo();summary();drawHistory();updateCreditDashboard();
+updateTopPendingCredit();
+
+function billCreditPending(b){
+  // Respect an explicitly saved creditPending value, including 0 after collection.
+  if(Object.prototype.hasOwnProperty.call(b,'creditPending')){
+    let saved=Number(b.creditPending);
+    return Number.isFinite(saved) ? Math.max(0,saved) : 0;
+  }
+  // Backward compatibility for older bills.
+  let total=Number(b.amount||b.total||0);
+  let cash=Number(b.cashGiven||0);
+  let upi=Number(b.upiPaid||0);
+  if(b.mode==='Credit' || b.mode==='UPI' || b.mode==='Cash + UPI'){
+    return Math.max(0,total-cash-upi);
+  }
+  return 0;
+}
+function getPendingCreditBills(){
+  return bills.filter(b=>!b.voided&&billCreditPending(b)>0).slice().reverse();
+}
+function getPendingCreditTotal(){
+  return getPendingCreditBills().reduce((sum,b)=>sum+billCreditPending(b),0);
+}
+function updateTopPendingCredit(){
+  let list=getPendingCreditBills();
+  let count=list.length;
+  let btn=$('topPendingCreditBtn'), badge=$('pendingNotify');
+  if(btn) btn.classList.toggle('has-pending',count>0);
+  if(badge){
+    badge.textContent=count;
+    badge.style.display=count>0?'inline-flex':'none';
+  }
+}
+function openPendingCredits(){
+  let modal=$('pendingCreditsModal');
+  if(!modal)return;
+  modal.style.display='flex';
+  modal.classList.add('show');
+  renderPendingCreditList();
+}
+function renderPendingCreditList(){
+  let el=$('pendingCreditsList');
+  if(!el)return;
+  let mobile=String($('creditMobileFilter')?.value||'').replace(/\D/g,'');
+  let minRaw=$('creditMinFilter')?.value||'', maxRaw=$('creditMaxFilter')?.value||'';
+  let min=minRaw===''?null:Number(minRaw), max=maxRaw===''?null:Number(maxRaw);
+  let list=getPendingCreditBills().filter(b=>{
+    let mob=String(b.mobile||'').replace(/\D/g,'');
+    let amount=billCreditPending(b);
+    return (!mobile||mob.includes(mobile)) && (min===null||amount>=min) && (max===null||amount<=max);
+  });
+  el.innerHTML=list.length
+    ? `<div style="overflow:auto"><table class="all-bills-table"><thead><tr><th>Date</th><th>Bill No</th><th>Customer</th><th>Mobile</th><th>Total Bill</th><th>Pending Credit</th><th>Action</th></tr></thead><tbody>${list.map(b=>`<tr><td>${b.date||'-'}</td><td>${b.no||'-'}</td><td>${b.customer||'Walk-in'}</td><td>${b.mobile||'-'}</td><td>${money(b.amount)}</td><td style="color:#ffd36a;font-weight:800">${money(billCreditPending(b))}</td><td><button class="pending-action collect" onclick="collectPendingCredit(${bills.indexOf(b)})">COLLECT</button><button class="pending-action remind" onclick="remindPendingCredit(${bills.indexOf(b)})">REMINDER</button></td></tr>`).join('')}</tbody></table></div>`
+    : '<div style="padding:24px;text-align:center;font-weight:700">NO PENDING CREDIT MATCHES FILTER</div>';
+}
+function clearCreditFilters(){
+  if($('creditMobileFilter'))$('creditMobileFilter').value='';
+  if($('creditMinFilter'))$('creditMinFilter').value='';
+  if($('creditMaxFilter'))$('creditMaxFilter').value='';
+  renderPendingCreditList();
+}
+let creditReminderQueue = [];
+function sendAllCreditReminders(){
+  // Browsers and WhatsApp may block multiple tabs opened from one click.
+  // Queue reminders and open one chat per deliberate button click instead.
+  if(!creditReminderQueue.length){
+    creditReminderQueue=getPendingCreditBills().filter(b=>String(b.mobile||'').replace(/\D/g,'').length>=10);
+    if(!creditReminderQueue.length)return alert('No pending credit bills with valid mobile numbers.');
+    if(!confirm(`Prepare ${creditReminderQueue.length} pending-credit reminders? Click the button again for each next WhatsApp chat. You must press Send in WhatsApp for every customer.`)){creditReminderQueue=[];return;}
+  }
+  let b=creditReminderQueue.shift();
+  let mob=String(b.mobile||'').replace(/\D/g,'');
+  if(mob.length===10)mob='91'+mob;
+  let currentName=(shopName||'SRI PALANIMURUGAN').trim();
+  let msg=`*${currentName.toUpperCase()}*\n\n📝 *PAYMENT REMINDER*\n\nBill No: *${b.no}*\nCustomer: *${b.customer||'Walk-in'}*\nTotal Bill: *₹${Number(b.amount||0).toFixed(2)}*\nPending Credit: *₹${billCreditPending(b).toFixed(2)}*\n\nPlease clear the pending amount. Thank you! 🙏`;
+  window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`,'_blank');
+  let btn=document.getElementById('creditBatchReminderBtn');
+  if(btn){
+    if(creditReminderQueue.length){btn.textContent=`📲 OPEN NEXT REMINDER (${creditReminderQueue.length} LEFT)`;}
+    else{btn.textContent='📲 SEND ALL REMINDERS';creditReminderQueue=[];alert('All reminder chats have been opened one by one. Press Send in each WhatsApp chat to send the messages.');}
+  }
+}
+function closePendingCredits(){
+  let modal=$('pendingCreditsModal');
+  if(modal){modal.style.display='none';modal.classList.remove('show');}
+}
+
+function collectPendingCredit(index){
+  let b=bills[index];
+  if(!b || Number(b.creditPending||0)<=0)return;
+  let pending=billCreditPending(b);
+  let amount=prompt(`Pending Credit: ₹${pending.toFixed(2)}\nEnter collected amount:`, pending.toFixed(2));
+  if(amount===null)return;
+  amount=Number(amount);
+  if(!Number.isFinite(amount)||amount<=0)return alert('Enter a valid collection amount.');
+  if(amount>pending)return alert('Collected amount cannot be greater than pending credit.');
+
+  b.creditCollected=Number(b.creditCollected||0)+amount;
+  b.creditPending=Math.max(0,pending-amount);
+  b.creditCollectedDate=dateKey();
+  localStorage.setItem('model_bills',JSON.stringify(bills));
+
+  if(b.creditPending<=0){
+    alert('Credit fully collected.');
+  }else{
+    alert(`Collected ₹${amount.toFixed(2)}. Remaining Credit: ₹${b.creditPending.toFixed(2)}`);
+  }
+  updateTopPendingCredit();
+  summary();
+  openPendingCredits();
+}
+
+function remindPendingCredit(index){
+  let b=bills[index];
+  if(!b || Number(b.creditPending||0)<=0)return;
+  let mob=(b.mobile||'').replace(/\D/g,'');
+  if(!mob)return alert('Customer mobile number is not available.');
+
+  if(mob.length===10)mob='91'+mob;
+  let currentName=(shopName||'SRI PALANIMURUGAN').trim();
+  let msg=`*${currentName.toUpperCase()}*\n\n📝 *PAYMENT REMINDER*\n\nBill No: *${b.no}*\nCustomer: *${b.customer||'Walk-in'}*\nTotal Bill: *₹${Number(b.amount||0).toFixed(2)}*\nPending Credit: *₹${Number(b.creditPending||0).toFixed(2)}*\n\nPlease clear the pending amount. Thank you! 🙏`;
+  window.location.href=`whatsapp://send?phone=${mob}&text=${encodeURIComponent(msg)}`;
+}
+
+</script>
+<div id="dashboardModal" class="dashboard-modal"><div class="dashboard-box">
+<div class="dashboard-head"><h2>📊 DASHBOARD & MONTH-WISE SUMMARY</h2><button onclick="closeDashboard()">CLOSE</button></div>
+<div id="dashboardMonth" style="color:#a9c9e8; font-size:15px; margin-top:4px;"></div>
+<div class="month-dashboard">
+<div class="month-stat"><span>THIS MONTH BILLS</span><b id="monthBills">0</b></div>
+<div class="month-stat"><span>TOTAL BILL VALUE</span><b id="monthTotal">₹ 0.00</b></div>
+<div class="month-stat"><span>CASH VALUE</span><b id="monthCash">₹ 0.00</b></div>
+<div class="month-stat"><span>UPI VALUE</span><b id="monthUpi">₹ 0.00</b></div>
+<div class="month-stat"><span>📝 CREDIT</span><b id="monthCredit">₹ 0.00</b></div><div class="month-stat" style="cursor:pointer; border:1px solid #00d9ff; transition:.2s;" onclick="openDashboard(); openRepeatCustomerModal();" title="Click to view repeat customers">
+  <span>👥 REPEAT CUSTOMERS <br><small style="color:#00d9ff">(Click)</small></span>
+  <b id="monthRepeatCount" style="color:#00d9ff">0</b>
+</div>
+</div>
+<div style="margin-top:25px;">
+  <h3 style="color:#00d9ff; margin-bottom:8px; border-bottom:1px solid #17669f; padding-bottom:6px;">📅 MONTH-WISE SUMMARY REPORT</h3>
+  <div id="monthWiseSummaryList"></div>
+</div>
+</div></div>
+<div id="backupModal" class="backup-modal"><div class="backup-box">
+<h2>☁️ BACKUP & RESTORE</h2>
+<p style="color:#a9c9e8">Save all Services, Bills and Drafts, or restore them from a previous backup[cite: 1].</p>
+<div class="backup-actions">
+<button class="backup-download" onclick="downloadBackup()">⬇ DOWNLOAD BACKUP</button>
+<button class="backup-restore" onclick="chooseRestore()">⬆ RESTORE BACKUP</button>
+<button class="backup-close" onclick="closeBackupModal()">CLOSE</button>
+</div></div></div>
+<input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreData(event)">
+<div id="pendingCreditsModal" class="modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div class="modal-card" style="width:min(1000px,96vw);max-height:88vh;overflow:auto;background:#07162f;border:1px solid #17669f;border-radius:12px;padding:18px;box-sizing:border-box">
+    <div class="modal-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b>📝 PENDING CREDIT LIST</b><button onclick="closePendingCredits()">✕</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-bottom:12px">
+      <label style="display:flex;flex-direction:column;gap:4px;color:#a9c9e8;font-size:12px;flex:1;min-width:150px">FILTER MOBILE NUMBER<input id="creditMobileFilter" type="search" inputmode="numeric" placeholder="Enter mobile number" oninput="renderPendingCreditList()" style="padding:9px;border-radius:6px;border:1px solid #17669f;background:#0b203d;color:#fff"></label>
+      <label style="display:flex;flex-direction:column;gap:4px;color:#a9c9e8;font-size:12px;min-width:120px">MIN CREDIT ₹<input id="creditMinFilter" type="number" min="0" placeholder="Min amount" oninput="renderPendingCreditList()" style="padding:9px;border-radius:6px;border:1px solid #17669f;background:#0b203d;color:#fff;width:120px;box-sizing:border-box"></label>
+      <label style="display:flex;flex-direction:column;gap:4px;color:#a9c9e8;font-size:12px;min-width:120px">MAX CREDIT ₹<input id="creditMaxFilter" type="number" min="0" placeholder="Max amount" oninput="renderPendingCreditList()" style="padding:9px;border-radius:6px;border:1px solid #17669f;background:#0b203d;color:#fff;width:120px;box-sizing:border-box"></label>
+      <button onclick="clearCreditFilters()" style="padding:9px 12px;border:0;border-radius:6px;cursor:pointer">CLEAR FILTER</button>
+      <button id="creditBatchReminderBtn" onclick="sendAllCreditReminders()" style="padding:9px 12px;border:0;border-radius:6px;background:#166534;color:#fff;font-weight:700;cursor:pointer">📲 SEND ALL REMINDERS</button>
+    </div>
+    <div id="pendingCreditsList"></div>
+  </div>
+</div>
+
+<style id="payment-vertical-compact-final">
+/* PAYMENT METHOD - vertical compact buttons */
+.payment .paybtns{
+  display:flex !important;
+  flex-direction:column !important;
+  flex-wrap:nowrap !important;
+  align-items:stretch !important;
+  gap:4px !important;
+  width:100% !important;
+}
+.payment .paybtns > .pay{
+  display:flex !important;
+  flex:0 0 44px !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:44px !important;
+  min-height:44px !important;
+  margin:0 !important;
+  padding:4px 8px !important;
+  box-sizing:border-box !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:12px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+.payment .paybtns > .pay br{
+  display:none !important;
+}
+.payment .paybtns > #splitPay{
+  padding:0 !important;
+  overflow:hidden !important;
+}
+.payment .paybtns > #splitPay > div{
+  height:100% !important;
+  width:50% !important;
+  float:left !important;
+  border:0 !important;
+  font-size:11px !important;
+}
+</style>
+
+</body>
+</html>
